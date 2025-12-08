@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const {
-  getSettings,
-  updateSettings,
-  resetSettings,
-  getSystemInfo
-} = require('../controllers/settingsController-mock');
-const { verifyToken, authorize } = require('../middleware/auth-mock');
+    getSettings,
+    updateSettings,
+    resetSettings,
+    getSystemInfo
+} = require('../controllers/settingsController');
+const { verifyToken, authorize } = require('../middleware/auth');
 
 // All routes require authentication
 router.use(verifyToken);

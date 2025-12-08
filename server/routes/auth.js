@@ -7,8 +7,8 @@ const {
   updateProfile,
   changePassword,
   logoutUser
-} = require('../controllers/authController-mock');
-const { verifyToken, authorize } = require('../middleware/auth-mock');
+} = require('../controllers/authController');
+const { verifyToken } = require('../middleware/auth');
 
 // Public routes
 router.post('/login', loginUser);

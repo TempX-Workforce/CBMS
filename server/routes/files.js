@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { handleFileUpload, serveFiles } = require('../middleware/fileUpload');
 const { uploadFiles, getFileInfo, deleteFileById, getDownloadUrl, cleanupFiles, getFileStats } = require('../controllers/fileController');
-const { verifyToken, authorize } = require('../middleware/auth-mock');
+const { verifyToken, authorize } = require('../middleware/auth');
 
 // File upload route
 router.post('/upload', verifyToken, handleFileUpload, uploadFiles);

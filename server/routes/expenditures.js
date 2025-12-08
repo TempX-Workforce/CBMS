@@ -11,10 +11,17 @@ const {
   getExpenditureStats
 } = require('../controllers/expenditureController');
 const { verifyToken, authorize } = require('../middleware/auth');
-const { upload, handleUploadError, processUploadedFiles } = require('../middleware/fileUpload');
+const { handleFileUpload } = require('../middleware/fileUpload');
 
 // All routes require authentication
 router.use(verifyToken);
+
+const attachFilesToBody = (req, res, next) => {
+  if (req.uploadedFiles) {
+    req.body.attachments = req.uploadedFiles;
+  }
+  next();
+};
 
 // Get expenditures (all authenticated users)
 router.get('/', getExpenditures);
@@ -22,20 +29,18 @@ router.get('/stats', getExpenditureStats);
 router.get('/:id', getExpenditureById);
 
 // Submit expenditure (department users only)
-router.post('/', 
-  authorize('department'), 
-  upload.array('attachments', 5),
-  handleUploadError,
-  processUploadedFiles,
+router.post('/',
+  authorize('department'),
+  handleFileUpload,
+  attachFilesToBody,
   submitExpenditure
 );
 
 // Resubmit expenditure (department users only)
-router.post('/:id/resubmit', 
+router.post('/:id/resubmit',
   authorize('department'),
-  upload.array('attachments', 5),
-  handleUploadError,
-  processUploadedFiles,
+  handleFileUpload,
+  attachFilesToBody,
   resubmitExpenditure
 );
 
@@ -43,14 +48,14 @@ router.post('/:id/resubmit',
 router.put('/:id/verify', authorize('hod'), verifyExpenditure);
 
 // Approve expenditure (Office, Vice Principal, Principal)
-router.put('/:id/approve', 
-  authorize('office', 'vice_principal', 'principal'), 
+router.put('/:id/approve',
+  authorize('office', 'vice_principal', 'principal'),
   approveExpenditure
 );
 
 // Reject expenditure (Office, Vice Principal, Principal)
-router.put('/:id/reject', 
-  authorize('office', 'vice_principal', 'principal'), 
+router.put('/:id/reject',
+  authorize('office', 'vice_principal', 'principal'),
   rejectExpenditure
 );
 
