@@ -152,38 +152,34 @@ const Header = () => {
 
         {/* Mobile Menu Button */}
         <button className="mobile-menu-btn" onClick={toggleMenu}>
-          <span className="hamburger"></span>
-          <span className="hamburger"></span>
-          <span className="hamburger"></span>
+          <LuMenu size={24} />
         </button>
       </div>
 
       {/* Mobile Navigation */}
-      {isMenuOpen && (
-        <nav className="nav-mobile">
-          {getNavigationItems().map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className="nav-link-mobile"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              <span className="nav-icon">{item.icon}</span>
-              <span className="nav-label">{item.label}</span>
-            </Link>
-          ))}
-          <div className="mobile-user-info">
-            <div className="user-avatar">{user?.name?.charAt(0).toUpperCase()}</div>
-            <div>
-              <div className="user-name">{user?.name}</div>
-              <div className="user-role">{getRoleDisplayName(user?.role)}</div>
-            </div>
+      <nav className={`nav-mobile ${isMenuOpen ? 'open' : ''}`}>
+        {getNavigationItems().map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className="nav-link-mobile"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            <span className="nav-icon">{item.icon}</span>
+            <span className="nav-label">{item.label}</span>
+          </Link>
+        ))}
+        <div className="mobile-user-info">
+          <div className="user-avatar">{user?.name?.charAt(0).toUpperCase()}</div>
+          <div>
+            <div className="user-name">{user?.name}</div>
+            <div className="user-role">{getRoleDisplayName(user?.role)}</div>
           </div>
-          <button onClick={handleLogout} className="mobile-logout-btn">
-            Logout
-          </button>
-        </nav>
-      )}
+        </div>
+        <button onClick={handleLogout} className="mobile-logout-btn">
+          Logout
+        </button>
+      </nav>
 
       {/* Overlay for mobile menu */}
       {isMenuOpen && (

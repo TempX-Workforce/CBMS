@@ -259,9 +259,20 @@ const getDashboardReport = async (req, res) => {
       .populate('department', 'name code')
       .populate('budgetHead', 'name category');
 
+    // Validate financial year format
+    if (!currentFY || !/^\d{4}-\d{4}$/.test(currentFY)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid financial year format. Expected YYYY-YYYY.'
+      });
+    }
+
     // Get expenditures for the financial year
-    const startDate = new Date(`${currentFY.split('-')[0]}-04-01`);
-    const endDate = new Date(`${currentFY.split('-')[1]}-03-31`);
+    const startYear = parseInt(currentFY.split('-')[0]);
+    const endYear = parseInt(currentFY.split('-')[1]);
+
+    const startDate = new Date(startYear, 3, 1); // Month is 0-indexed: April 1st
+    const endDate = new Date(endYear, 2, 31, 23, 59, 59); // March 31st end of day
 
     const expenditures = await Expenditure.find({
       billDate: { $gte: startDate, $lte: endDate }
