@@ -22,22 +22,22 @@ const getExpenditureReport = async (req, res) => {
 
     // Build query
     const query = {};
-    
+
     if (startDate && endDate) {
       query.billDate = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
     }
-    
+
     if (department) {
       query.department = department;
     }
-    
+
     if (budgetHead) {
       query.budgetHead = budgetHead;
     }
-    
+
     if (status) {
       query.status = status;
     }
@@ -63,7 +63,7 @@ const getExpenditureReport = async (req, res) => {
     expenditures.forEach(exp => {
       // By status
       summary.byStatus[exp.status] = (summary.byStatus[exp.status] || 0) + exp.billAmount;
-      
+
       // By department
       const deptName = exp.department.name;
       if (!summary.byDepartment[deptName]) {
@@ -71,7 +71,7 @@ const getExpenditureReport = async (req, res) => {
       }
       summary.byDepartment[deptName].count++;
       summary.byDepartment[deptName].amount += exp.billAmount;
-      
+
       // By budget head
       const headName = exp.budgetHead.name;
       if (!summary.byBudgetHead[headName]) {
@@ -79,7 +79,7 @@ const getExpenditureReport = async (req, res) => {
       }
       summary.byBudgetHead[headName].count++;
       summary.byBudgetHead[headName].amount += exp.billAmount;
-      
+
       // By month
       const month = exp.billDate.toISOString().substring(0, 7);
       summary.byMonth[month] = (summary.byMonth[month] || 0) + exp.billAmount;
@@ -131,15 +131,15 @@ const getAllocationReport = async (req, res) => {
 
     // Build query
     const query = {};
-    
+
     if (financialYear) {
       query.financialYear = financialYear;
     }
-    
+
     if (department) {
       query.department = department;
     }
-    
+
     if (budgetHead) {
       query.budgetHead = budgetHead;
     }
@@ -178,7 +178,7 @@ const getAllocationReport = async (req, res) => {
       summary.byDepartment[deptName].spent += alloc.spentAmount;
       summary.byDepartment[deptName].remaining += alloc.remainingAmount;
       summary.byDepartment[deptName].count++;
-      
+
       // By budget head
       const headName = alloc.budgetHead.name;
       if (!summary.byBudgetHead[headName]) {
@@ -193,7 +193,7 @@ const getAllocationReport = async (req, res) => {
       summary.byBudgetHead[headName].spent += alloc.spentAmount;
       summary.byBudgetHead[headName].remaining += alloc.remainingAmount;
       summary.byBudgetHead[headName].count++;
-      
+
       // By financial year
       const fy = alloc.financialYear;
       if (!summary.byFinancialYear[fy]) {
@@ -250,10 +250,10 @@ const getAllocationReport = async (req, res) => {
 const getDashboardReport = async (req, res) => {
   try {
     const { financialYear, includeComparison = false } = req.query;
-    
+
     // Get current financial year if not specified
     const currentFY = financialYear || getCurrentFinancialYear();
-    
+
     // Get allocations for the financial year
     const allocations = await Allocation.find({ financialYear: currentFY })
       .populate('department', 'name code')
@@ -262,7 +262,7 @@ const getDashboardReport = async (req, res) => {
     // Get expenditures for the financial year
     const startDate = new Date(`${currentFY.split('-')[0]}-04-01`);
     const endDate = new Date(`${currentFY.split('-')[1]}-03-31`);
-    
+
     const expenditures = await Expenditure.find({
       billDate: { $gte: startDate, $lte: endDate }
     })
@@ -396,18 +396,18 @@ const getAuditReport = async (req, res) => {
 
     // Build query
     const query = {};
-    
+
     if (startDate && endDate) {
-      query.timestamp = {
+      query.createdAt = {
         $gte: new Date(startDate),
         $lte: new Date(endDate)
       };
     }
-    
+
     if (eventType) {
       query.eventType = eventType;
     }
-    
+
     if (actorId) {
       query.actorId = actorId;
     }
@@ -415,7 +415,7 @@ const getAuditReport = async (req, res) => {
     // Get audit logs with populated data
     const auditLogs = await AuditLog.find(query)
       .populate('actorId', 'name email role')
-      .sort({ timestamp: -1 })
+      .sort({ createdAt: -1 })
       .limit(1000); // Limit to prevent large responses
 
     if (format === 'csv') {
@@ -466,11 +466,11 @@ const getYearComparisonData = async (previousFY, currentFY) => {
     // Get previous year data
     const prevStartDate = new Date(`${previousFY.split('-')[0]}-04-01`);
     const prevEndDate = new Date(`${previousFY.split('-')[1]}-03-31`);
-    
+
     const prevAllocations = await Allocation.find({ financialYear: previousFY })
       .populate('department', 'name code')
       .populate('budgetHead', 'name category');
-    
+
     const prevExpenditures = await Expenditure.find({
       billDate: { $gte: prevStartDate, $lte: prevEndDate }
     });
@@ -478,11 +478,11 @@ const getYearComparisonData = async (previousFY, currentFY) => {
     // Get current year data (already fetched)
     const currentStartDate = new Date(`${currentFY.split('-')[0]}-04-01`);
     const currentEndDate = new Date(`${currentFY.split('-')[1]}-03-31`);
-    
+
     const currentAllocations = await Allocation.find({ financialYear: currentFY })
       .populate('department', 'name code')
       .populate('budgetHead', 'name category');
-    
+
     const currentExpenditures = await Expenditure.find({
       billDate: { $gte: currentStartDate, $lte: currentEndDate }
     });
@@ -497,21 +497,21 @@ const getYearComparisonData = async (previousFY, currentFY) => {
     const currentUtilization = currentTotalAllocated > 0 ? (currentTotalSpent / currentTotalAllocated) * 100 : 0;
 
     // Calculate percentage changes
-    const allocatedChange = prevTotalAllocated > 0 
-      ? ((currentTotalAllocated - prevTotalAllocated) / prevTotalAllocated) * 100 
+    const allocatedChange = prevTotalAllocated > 0
+      ? ((currentTotalAllocated - prevTotalAllocated) / prevTotalAllocated) * 100
       : 0;
-    
-    const spentChange = prevTotalSpent > 0 
-      ? ((currentTotalSpent - prevTotalSpent) / prevTotalSpent) * 100 
+
+    const spentChange = prevTotalSpent > 0
+      ? ((currentTotalSpent - prevTotalSpent) / prevTotalSpent) * 100
       : 0;
-    
-    const utilizationChange = prevUtilization > 0 
-      ? currentUtilization - prevUtilization 
+
+    const utilizationChange = prevUtilization > 0
+      ? currentUtilization - prevUtilization
       : 0;
 
     // Department-wise comparison
     const departmentComparison = {};
-    
+
     // Get all unique departments from both years
     const allDepartments = new Set([
       ...prevAllocations.map(a => a.department.name),
@@ -521,19 +521,19 @@ const getYearComparisonData = async (previousFY, currentFY) => {
     allDepartments.forEach(deptName => {
       const prevDeptAllocations = prevAllocations.filter(a => a.department.name === deptName);
       const currentDeptAllocations = currentAllocations.filter(a => a.department.name === deptName);
-      
+
       const prevDeptAllocated = prevDeptAllocations.reduce((sum, alloc) => sum + alloc.allocatedAmount, 0);
       const prevDeptSpent = prevDeptAllocations.reduce((sum, alloc) => sum + alloc.spentAmount, 0);
-      
+
       const currentDeptAllocated = currentDeptAllocations.reduce((sum, alloc) => sum + alloc.allocatedAmount, 0);
       const currentDeptSpent = currentDeptAllocations.reduce((sum, alloc) => sum + alloc.spentAmount, 0);
-      
-      const allocatedChange = prevDeptAllocated > 0 
-        ? ((currentDeptAllocated - prevDeptAllocated) / prevDeptAllocated) * 100 
+
+      const allocatedChange = prevDeptAllocated > 0
+        ? ((currentDeptAllocated - prevDeptAllocated) / prevDeptAllocated) * 100
         : 0;
-      
-      const spentChange = prevDeptSpent > 0 
-        ? ((currentDeptSpent - prevDeptSpent) / prevDeptSpent) * 100 
+
+      const spentChange = prevDeptSpent > 0
+        ? ((currentDeptSpent - prevDeptSpent) / prevDeptSpent) * 100
         : 0;
 
       departmentComparison[deptName] = {
@@ -610,7 +610,7 @@ const generateExpenditureCSV = (expenditures) => {
     exp.createdAt.toISOString()
   ]);
 
-  return [headers, ...rows].map(row => 
+  return [headers, ...rows].map(row =>
     row.map(field => `"${field}"`).join(',')
   ).join('\n');
 };
@@ -629,10 +629,10 @@ const generateAllocationCSV = (allocations) => {
   ];
 
   const rows = allocations.map(alloc => {
-    const utilization = alloc.allocatedAmount > 0 
+    const utilization = alloc.allocatedAmount > 0
       ? ((alloc.spentAmount / alloc.allocatedAmount) * 100).toFixed(2)
       : '0.00';
-    
+
     return [
       alloc.financialYear,
       alloc.department.name,
@@ -646,7 +646,7 @@ const generateAllocationCSV = (allocations) => {
     ];
   });
 
-  return [headers, ...rows].map(row => 
+  return [headers, ...rows].map(row =>
     row.map(field => `"${field}"`).join(',')
   ).join('\n');
 };
@@ -668,7 +668,7 @@ const generateAuditCSV = (auditLogs) => {
     log.details
   ]);
 
-  return [headers, ...rows].map(row => 
+  return [headers, ...rows].map(row =>
     row.map(field => `"${field}"`).join(',')
   ).join('\n');
 };

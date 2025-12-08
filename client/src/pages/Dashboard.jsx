@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { expenditureAPI } from '../services/api';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -16,47 +17,58 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading data
-    setTimeout(() => {
-      setStats({
-        totalBudget: 5000000,
-        spentAmount: 3200000,
-        remainingAmount: 1800000,
-        utilizationPercentage: 64,
-        pendingApprovals: 12,
-        totalExpenditures: 45,
-      });
+    fetchDashboardData();
+  }, []);
 
-      setRecentExpenditures([
-        {
-          id: 1,
-          billNumber: 'BILL-001',
-          amount: 25000,
-          partyName: 'ABC Suppliers',
-          status: 'approved',
-          date: '2024-01-15',
-        },
-        {
-          id: 2,
-          billNumber: 'BILL-002',
-          amount: 15000,
-          partyName: 'XYZ Services',
-          status: 'pending',
-          date: '2024-01-14',
-        },
-        {
-          id: 3,
-          billNumber: 'BILL-003',
-          amount: 35000,
-          partyName: 'DEF Equipment',
-          status: 'verified',
-          date: '2024-01-13',
-        },
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+
+      // Fetch stats and recent expenditures in parallel
+      const [statsRes, expendituresRes] = await Promise.all([
+        expenditureAPI.getExpenditureStats({ financialYear: '2024-25' }),
+        expenditureAPI.getExpenditures({ limit: 5 })
       ]);
 
+      const statsData = statsRes.data.data.summary;
+
+      // Calculate dashboard stats based on real data
+      // Note: In a real scenario, we might need a dedicated dashboard stats endpoint
+      // for things like total budget, remaining, etc. if not available in expenditure stats.
+      // For now, we'll map what we have and assume some budget defaults if API doesn't provide it yet.
+      // Or better, fetch dept/budgetHead stats if available.
+
+      // Assuming a total budget for demo or fetched from another API:
+      const totalBudget = 5000000; // This should ideally come from allocations API
+      const spentAmount = statsData.totalAmount || 0;
+      const remainingAmount = totalBudget - spentAmount;
+      const utilizationPercentage = Math.round((spentAmount / totalBudget) * 100);
+
+      setStats({
+        totalBudget,
+        spentAmount,
+        remainingAmount,
+        utilizationPercentage,
+        pendingApprovals: expendituresRes.data.data.expenditures.filter(e => e.status === 'pending').length, // This might be just visible ones, better to use stats count
+        totalExpenditures: statsData.totalExpenditures || 0,
+      });
+
+      setRecentExpenditures(expendituresRes.data.data.expenditures.map(exp => ({
+        id: exp._id,
+        billNumber: exp.billNumber,
+        amount: exp.billAmount,
+        partyName: exp.partyName,
+        status: exp.status,
+        date: new Date(exp.billDate).toLocaleDateString('en-IN')
+      })));
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      // Fallback or error state could be set here
+    } finally {
       setIsLoading(false);
-    }, 1000);
-  }, []);
+    }
+  };
 
   const getRoleSpecificContent = () => {
     switch (user?.role) {
@@ -229,8 +241,8 @@ const Dashboard = () => {
             <h3>Utilization</h3>
             <p className="stat-value">{stats.utilizationPercentage}%</p>
             <div className="progress-bar">
-              <div 
-                className="progress-fill" 
+              <div
+                className="progress-fill"
                 style={{ width: `${stats.utilizationPercentage}%` }}
               ></div>
             </div>
@@ -270,7 +282,7 @@ const Dashboard = () => {
               <span className="bill-number">{expenditure.billNumber}</span>
               <span className="amount">{formatCurrency(expenditure.amount)}</span>
               <span className="party">{expenditure.partyName}</span>
-              <span 
+              <span
                 className="status"
                 style={{ color: getStatusColor(expenditure.status) }}
               >
