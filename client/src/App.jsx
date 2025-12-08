@@ -23,6 +23,9 @@ import ResubmitExpenditure from './pages/ResubmitExpenditure';
 import BulkUpload from './pages/BulkUpload';
 import HODDashboard from './pages/HODDashboard';
 import GraphicalDashboard from './pages/GraphicalDashboard';
+import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -31,51 +34,54 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="App">
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          
-          {/* Protected Routes */}
-          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+
+            {/* Protected Routes */}
+            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
-              
+
               {/* Admin Routes */}
               <Route path="users" element={<Users />} />
               <Route path="departments" element={<Departments />} />
               <Route path="budget-heads" element={<BudgetHeads />} />
               <Route path="settings" element={<Settings />} />
-              
+
               {/* Office Routes */}
               <Route path="allocations" element={<BudgetAllocations />} />
               <Route path="bulk-upload" element={<BulkUpload />} />
               <Route path="approvals" element={<ApprovalsQueue />} />
               <Route path="reports" element={<Reports />} />
-              
+
               {/* Department Routes */}
               <Route path="expenditures" element={<DepartmentDashboard />} />
               <Route path="submit-expenditure" element={<SubmitExpenditure />} />
               <Route path="resubmit-expenditure/:id" element={<ResubmitExpenditure />} />
-              
+
               {/* HOD Routes */}
               <Route path="department-expenditures" element={<HODDashboard />} />
               <Route path="department-users" element={<DepartmentUsers />} />
-              
+
               {/* Management Routes */}
               <Route path="consolidated-view" element={<ConsolidatedDashboard />} />
               <Route path="year-comparison" element={<YearComparison />} />
-              
+
               {/* Auditor Routes */}
               <Route path="audit-logs" element={<AuditLogs />} />
-              
+
               {/* Common Routes */}
               <Route path="notifications" element={<Notifications />} />
               <Route path="graphical-dashboard" element={<GraphicalDashboard />} />
-              <Route path="profile" element={<div>Profile (Coming Soon)</div>} />
-              <Route path="change-password" element={<div>Change Password (Coming Soon)</div>} />
+              <Route path="profile" element={<Profile />} />
             </Route>
-            
+
+            {/* Password Reset Routes (Public) */}
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

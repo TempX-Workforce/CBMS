@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { expenditureAPI } from '../services/api';
+import { expenditureAPI, allocationAPI } from '../services/api';
 import {
   LuUsers,
   LuBuilding2,
@@ -38,20 +38,25 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
+
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
 
-      const [statsRes, expendituresRes] = await Promise.all([
+      const [statsRes, expendituresRes, allocationStatsRes] = await Promise.all([
         expenditureAPI.getExpenditureStats({ financialYear: '2024-25' }),
-        expenditureAPI.getExpenditures({ limit: 5 })
+        expenditureAPI.getExpenditures({ limit: 5 }),
+        allocationAPI.getAllocationStats({ financialYear: '2024-25' })
       ]);
 
       const statsData = statsRes.data.data.summary;
-      const totalBudget = 5000000;
+      const allocationData = allocationStatsRes.data.data.summary;
+
+      // Use real budget data from allocations instead of hardcoded value
+      const totalBudget = allocationData.totalAllocated || 0;
       const spentAmount = statsData.totalAmount || 0;
       const remainingAmount = totalBudget - spentAmount;
-      const utilizationPercentage = Math.round((spentAmount / totalBudget) * 100);
+      const utilizationPercentage = totalBudget > 0 ? Math.round((spentAmount / totalBudget) * 100) : 0;
 
       setStats({
         totalBudget,
