@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { allocationAPI, expenditureAPI, departmentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { LuDollarSign, LuCreditCard, LuWallet, LuPieChart, LuList, LuReceipt } from 'react-icons/lu';
 import './ConsolidatedDashboard.css';
 
 const ConsolidatedDashboard = () => {
@@ -21,18 +22,18 @@ const ConsolidatedDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       const params = {};
       if (selectedDepartment) params.departmentId = selectedDepartment;
       if (selectedFinancialYear) params.financialYear = selectedFinancialYear;
-      
+
       const [allocationsResponse, expendituresResponse, departmentsResponse, statsResponse] = await Promise.all([
         allocationAPI.getAllocations(params),
         expenditureAPI.getExpenditures(params),
         departmentsAPI.getDepartments(),
         allocationAPI.getAllocationStats(params)
       ]);
-      
+
       setAllocations(allocationsResponse.data.data.allocations);
       setExpenditures(expendituresResponse.data.data.expenditures);
       setDepartments(departmentsResponse.data.data.departments);
@@ -78,12 +79,12 @@ const ConsolidatedDashboard = () => {
   const departmentStats = departments.map(dept => {
     const deptAllocations = allocations.filter(allocation => allocation.departmentId === dept._id);
     const deptExpenditures = expenditures.filter(expenditure => expenditure.departmentId === dept._id);
-    
+
     const totalAllocated = deptAllocations.reduce((sum, allocation) => sum + allocation.allocatedAmount, 0);
     const totalSpent = deptAllocations.reduce((sum, allocation) => sum + allocation.spentAmount, 0);
     const totalRemaining = totalAllocated - totalSpent;
     const utilization = getUtilizationPercentage(totalAllocated, totalSpent);
-    
+
     return {
       ...dept,
       totalAllocated,
@@ -150,7 +151,7 @@ const ConsolidatedDashboard = () => {
         <div className="overview-stats">
           <div className="stat-card primary">
             <div className="stat-icon">
-              <i className="fas fa-money-bill-wave"></i>
+              <LuDollarSign size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalAllocated)}</div>
@@ -159,7 +160,7 @@ const ConsolidatedDashboard = () => {
           </div>
           <div className="stat-card success">
             <div className="stat-icon">
-              <i className="fas fa-credit-card"></i>
+              <LuCreditCard size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalSpent)}</div>
@@ -168,7 +169,7 @@ const ConsolidatedDashboard = () => {
           </div>
           <div className="stat-card warning">
             <div className="stat-icon">
-              <i className="fas fa-wallet"></i>
+              <LuWallet size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalRemaining)}</div>
@@ -177,7 +178,7 @@ const ConsolidatedDashboard = () => {
           </div>
           <div className="stat-card info">
             <div className="stat-icon">
-              <i className="fas fa-chart-pie"></i>
+              <LuPieChart size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{stats.summary.utilizationPercentage}%</div>
@@ -197,7 +198,7 @@ const ConsolidatedDashboard = () => {
                   <h3 className="department-name">{dept.name}</h3>
                   <span className="department-code">{dept.code}</span>
                 </div>
-                
+
                 <div className="department-stats">
                   <div className="stat-row">
                     <span className="label">Allocated:</span>
@@ -216,21 +217,21 @@ const ConsolidatedDashboard = () => {
                     <span className="value">{dept.utilization}%</span>
                   </div>
                 </div>
-                
+
                 <div className="utilization-bar">
                   <div className="utilization-fill" style={{
                     width: `${dept.utilization}%`,
                     backgroundColor: getUtilizationColor(dept.utilization)
                   }}></div>
                 </div>
-                
+
                 <div className="department-meta">
                   <div className="meta-item">
-                    <i className="fas fa-list"></i>
+                    <LuList size={14} />
                     <span>{dept.allocationCount} Allocations</span>
                   </div>
                   <div className="meta-item">
-                    <i className="fas fa-receipt"></i>
+                    <LuReceipt size={14} />
                     <span>{dept.expenditureCount} Expenditures</span>
                   </div>
                 </div>
@@ -245,7 +246,7 @@ const ConsolidatedDashboard = () => {
             {expenditures.slice(0, 10).map((expenditure) => (
               <div key={expenditure._id} className="activity-item">
                 <div className="activity-icon">
-                  <i className="fas fa-receipt"></i>
+                  <LuReceipt size={20} />
                 </div>
                 <div className="activity-content">
                   <div className="activity-title">
@@ -260,7 +261,7 @@ const ConsolidatedDashboard = () => {
                   </div>
                 </div>
                 <div className="activity-status">
-                  <span 
+                  <span
                     className={`status-badge ${expenditure.status}`}
                     style={{ backgroundColor: getUtilizationColor(expenditure.status === 'approved' ? 100 : expenditure.status === 'pending' ? 50 : 0) }}
                   >
@@ -301,7 +302,7 @@ const ConsolidatedDashboard = () => {
                   <td>
                     <div className="utilization-cell">
                       <div className="utilization-bar-small">
-                        <div 
+                        <div
                           className="utilization-fill-small"
                           style={{
                             width: `${getUtilizationPercentage(budgetHead.totalAllocated, budgetHead.totalSpent)}%`,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { expenditureAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { LuCheckCircle, LuPaperclip, LuCheck, LuX } from 'react-icons/lu';
 import './HODDashboard.css';
 
 const HODDashboard = () => {
@@ -61,7 +62,7 @@ const HODDashboard = () => {
           remarks: approvalRemarks
         });
       }
-      
+
       setShowApprovalModal(false);
       setSelectedExpenditure(null);
       setApprovalRemarks('');
@@ -120,7 +121,7 @@ const HODDashboard = () => {
         {expenditures.length === 0 ? (
           <div className="no-expenditures">
             <div className="no-expenditures-icon">
-              <i className="fas fa-check-circle"></i>
+              <LuCheckCircle size={18} />
             </div>
             <h3>No Pending Approvals</h3>
             <p>All expenditures from your department have been processed.</p>
@@ -184,7 +185,7 @@ const HODDashboard = () => {
                             rel="noopener noreferrer"
                             className="attachment-link"
                           >
-                            <i className="fas fa-paperclip"></i>
+                            <LuPaperclip size={14} />
                             {attachment.originalName}
                           </a>
                         ))}
@@ -197,14 +198,14 @@ const HODDashboard = () => {
                       className="btn btn-success"
                       onClick={() => handleApprove(expenditure)}
                     >
-                      <i className="fas fa-check"></i>
+                      <LuCheck size={16} />
                       Approve
                     </button>
                     <button
                       className="btn btn-danger"
                       onClick={() => handleReject(expenditure)}
                     >
-                      <i className="fas fa-times"></i>
+                      <LuX size={16} />
                       Reject
                     </button>
                   </div>
@@ -225,7 +226,7 @@ const HODDashboard = () => {
                 className="modal-close"
                 onClick={() => setShowApprovalModal(false)}
               >
-                <i className="fas fa-times"></i>
+                <LuX size={20} />
               </button>
             </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { expenditureAPI } from '../services/api';
+import { LuPaperclip, LuCheck, LuX, LuClipboardCheck } from 'react-icons/lu';
 import './ApprovalsQueue.css';
 
 const ApprovalsQueue = () => {
@@ -30,7 +31,7 @@ const ApprovalsQueue = () => {
       if (filters.departmentId) params.departmentId = filters.departmentId;
       if (filters.budgetHeadId) params.budgetHeadId = filters.budgetHeadId;
       if (filters.status) params.status = filters.status;
-      
+
       const response = await expenditureAPI.getExpenditures(params);
       setExpenditures(response.data.data.expenditures);
       setError(null);
@@ -66,7 +67,7 @@ const ApprovalsQueue = () => {
 
   const handleProcessAction = async () => {
     if (!selectedExpenditure) return;
-    
+
     if (actionType === 'reject' && !remarks.trim()) {
       setError('Remarks are required for rejection');
       return;
@@ -79,7 +80,7 @@ const ApprovalsQueue = () => {
       } else {
         await expenditureAPI.rejectExpenditure(selectedExpenditure._id, { remarks });
       }
-      
+
       setShowModal(false);
       setSelectedExpenditure(null);
       setRemarks('');
@@ -206,7 +207,7 @@ const ApprovalsQueue = () => {
                 {expenditure.status.charAt(0).toUpperCase() + expenditure.status.slice(1)}
               </div>
             </div>
-            
+
             <div className="card-body">
               <div className="expenditure-details">
                 <div className="detail-row">
@@ -230,25 +231,25 @@ const ApprovalsQueue = () => {
                   <span className="value">{formatDate(expenditure.submittedAt)}</span>
                 </div>
               </div>
-              
+
               <div className="expense-details">
                 <p className="expense-description">{expenditure.expenseDetails}</p>
               </div>
-              
+
               {expenditure.attachments && expenditure.attachments.length > 0 && (
                 <div className="attachments">
                   <span className="attachments-label">Attachments:</span>
                   <div className="attachment-list">
                     {expenditure.attachments.map((attachment, index) => (
                       <div key={index} className="attachment-item">
-                        <i className="fas fa-paperclip"></i>
+                        <LuPaperclip size={14} />
                         <span className="attachment-name">{attachment.originalName}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-              
+
               {expenditure.remarks && (
                 <div className="remarks">
                   <span className="remarks-label">Remarks:</span>
@@ -256,21 +257,21 @@ const ApprovalsQueue = () => {
                 </div>
               )}
             </div>
-            
+
             <div className="card-actions">
               {expenditure.status === 'pending' && (
                 <>
-                  <button 
+                  <button
                     className="btn btn-success"
                     onClick={() => handleApprove(expenditure)}
                   >
-                    <i className="fas fa-check"></i> Approve
+                    <LuCheck size={16} /> Approve
                   </button>
-                  <button 
+                  <button
                     className="btn btn-danger"
                     onClick={() => handleReject(expenditure)}
                   >
-                    <i className="fas fa-times"></i> Reject
+                    <LuX size={16} /> Reject
                   </button>
                 </>
               )}
@@ -293,7 +294,7 @@ const ApprovalsQueue = () => {
       {expenditures.length === 0 && (
         <div className="no-expenditures">
           <div className="no-expenditures-icon">
-            <i className="fas fa-clipboard-check"></i>
+            <LuClipboardCheck size={48} />
           </div>
           <h3>No Expenditures Found</h3>
           <p>No expenditures found matching the current filters.</p>
@@ -306,7 +307,7 @@ const ApprovalsQueue = () => {
             <div className="modal-header">
               <h2>{actionType === 'approve' ? 'Approve Expenditure' : 'Reject Expenditure'}</h2>
               <button className="close-btn" onClick={closeModal}>
-                <i className="fas fa-times"></i>
+                <LuX size={20} />
               </button>
             </div>
             <div className="modal-body">
@@ -320,7 +321,7 @@ const ApprovalsQueue = () => {
                   <p><strong>Details:</strong> {selectedExpenditure.expenseDetails}</p>
                 </div>
               )}
-              
+
               <div className="form-group">
                 <label htmlFor="remarks">
                   {actionType === 'approve' ? 'Approval Remarks (Optional)' : 'Rejection Remarks (Required)'}
@@ -339,8 +340,8 @@ const ApprovalsQueue = () => {
               <button type="button" className="btn btn-secondary" onClick={closeModal}>
                 Cancel
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className={`btn ${actionType === 'approve' ? 'btn-success' : 'btn-danger'}`}
                 onClick={handleProcessAction}
                 disabled={isProcessing || (actionType === 'reject' && !remarks.trim())}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { budgetHeadsAPI } from '../services/api';
+import { LuPlus, LuPencil, LuTrash2, LuX, LuDollarSign } from 'react-icons/lu';
 import './BudgetHeads.css';
 
 const BudgetHeads = () => {
@@ -23,7 +24,7 @@ const BudgetHeads = () => {
 
   const categories = [
     'Academic',
-    'Infrastructure', 
+    'Infrastructure',
     'Personnel',
     'Equipment',
     'Operations',
@@ -46,7 +47,7 @@ const BudgetHeads = () => {
       if (filters.search) params.search = filters.search;
       if (filters.category) params.category = filters.category;
       if (filters.isActive) params.isActive = filters.isActive;
-      
+
       const response = await budgetHeadsAPI.getBudgetHeads(params);
       setBudgetHeads(response.data.data.budgetHeads);
       setError(null);
@@ -91,7 +92,7 @@ const BudgetHeads = () => {
       } else {
         await budgetHeadsAPI.createBudgetHead(formData);
       }
-      
+
       setShowModal(false);
       setEditingBudgetHead(null);
       setFormData({ name: '', code: '', description: '', category: 'Other' });
@@ -168,7 +169,7 @@ const BudgetHeads = () => {
       <div className="budget-heads-header">
         <h1>Budget Heads Management</h1>
         <button className="btn btn-primary" onClick={openModal}>
-          <i className="fas fa-plus"></i> Add Budget Head
+          <LuPlus size={18} /> Add Budget Head
         </button>
       </div>
 
@@ -251,21 +252,21 @@ const BudgetHeads = () => {
                 </span>
               </div>
             </div>
-            
+
             <div className="card-body">
               <div className="head-category">
-                <span 
+                <span
                   className="category-badge"
                   style={{ backgroundColor: getCategoryColor(head.category) }}
                 >
                   {head.category}
                 </span>
               </div>
-              
+
               <p className="head-description">
                 {head.description || 'No description provided'}
               </p>
-              
+
               <div className="head-meta">
                 <p className="created-date">
                   Created: {new Date(head.createdAt).toLocaleDateString()}
@@ -273,19 +274,19 @@ const BudgetHeads = () => {
                 <p className="head-id">ID: {head._id}</p>
               </div>
             </div>
-            
+
             <div className="card-actions">
-              <button 
+              <button
                 className="btn btn-sm btn-secondary"
                 onClick={() => handleEdit(head)}
               >
-                <i className="fas fa-edit"></i> Edit
+                <LuPencil size={16} /> Edit
               </button>
-              <button 
+              <button
                 className="btn btn-sm btn-danger"
                 onClick={() => handleDelete(head._id)}
               >
-                <i className="fas fa-trash"></i> Delete
+                <LuTrash2 size={16} /> Delete
               </button>
             </div>
           </div>
@@ -295,7 +296,7 @@ const BudgetHeads = () => {
       {budgetHeads.length === 0 && (
         <div className="no-budget-heads">
           <div className="no-budget-heads-icon">
-            <i className="fas fa-money-bill-wave"></i>
+            <LuDollarSign size={48} />
           </div>
           <h3>No Budget Heads Found</h3>
           <p>No budget heads found matching the current filters.</p>
@@ -308,7 +309,7 @@ const BudgetHeads = () => {
             <div className="modal-header">
               <h2>{editingBudgetHead ? 'Edit Budget Head' : 'Add New Budget Head'}</h2>
               <button className="close-btn" onClick={closeModal}>
-                <i className="fas fa-times"></i>
+                <LuX size={20} />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="modal-form">
@@ -324,7 +325,7 @@ const BudgetHeads = () => {
                   placeholder="e.g., Academic Expenses"
                 />
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="code">Budget Head Code *</label>
                 <input
@@ -338,7 +339,7 @@ const BudgetHeads = () => {
                   style={{ textTransform: 'uppercase' }}
                 />
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="category">Category *</label>
                 <select
@@ -353,7 +354,7 @@ const BudgetHeads = () => {
                   ))}
                 </select>
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="description">Description</label>
                 <textarea
@@ -365,7 +366,7 @@ const BudgetHeads = () => {
                   rows="3"
                 />
               </div>
-              
+
               <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={closeModal}>
                   Cancel

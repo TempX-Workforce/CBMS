@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { allocationAPI, expenditureAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { LuDollarSign, LuCreditCard, LuWallet, LuPieChart, LuCheckCircle, LuAlertTriangle, LuReceipt, LuPlus, LuList, LuDownload } from 'react-icons/lu';
 import './DepartmentDashboard.css';
 
 const DepartmentDashboard = () => {
@@ -27,17 +28,17 @@ const DepartmentDashboard = () => {
     try {
       setLoading(true);
       console.log('Fetching data for department:', user.department);
-      
+
       const [allocationsResponse, expendituresResponse, statsResponse] = await Promise.all([
         allocationAPI.getAllocations({ departmentId: user.department }),
         expenditureAPI.getExpenditures({ departmentId: user.department }),
         allocationAPI.getAllocationStats({ departmentId: user.department })
       ]);
-      
+
       console.log('Allocations response:', allocationsResponse.data);
       console.log('Expenditures response:', expendituresResponse.data);
       console.log('Stats response:', statsResponse.data);
-      
+
       setAllocations(allocationsResponse.data.data.allocations);
       setExpenditures(expendituresResponse.data.data.expenditures);
       setStats(statsResponse.data.data);
@@ -55,13 +56,13 @@ const DepartmentDashboard = () => {
       setRefreshing(true);
       const response = await authAPI.getProfile();
       const updatedUser = response.data.data.user;
-      
+
       // Update localStorage
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       // Update context
       await updateProfile(updatedUser);
-      
+
       console.log('User data refreshed:', updatedUser);
     } catch (err) {
       console.error('Error refreshing user data:', err);
@@ -115,8 +116,8 @@ const DepartmentDashboard = () => {
           <br />
           <small>User: {user?.name} | Department: {user?.department || 'None'}</small>
           <br />
-          <button 
-            className="btn btn-primary" 
+          <button
+            className="btn btn-primary"
             onClick={refreshUserData}
             disabled={refreshing}
             style={{ marginTop: '10px' }}
@@ -135,16 +136,16 @@ const DepartmentDashboard = () => {
           <h2>No Department Assigned</h2>
           <p>You are not assigned to any department. Please contact an administrator.</p>
           <div style={{ marginTop: '20px' }}>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={refreshUserData}
               disabled={refreshing}
               style={{ marginRight: '10px' }}
             >
               {refreshing ? 'Refreshing...' : 'Refresh User Data'}
             </button>
-            <button 
-              className="btn btn-secondary" 
+            <button
+              className="btn btn-secondary"
               onClick={() => {
                 localStorage.clear();
                 window.location.reload();
@@ -175,7 +176,7 @@ const DepartmentDashboard = () => {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-money-bill-wave"></i>
+              <LuDollarSign size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalAllocated)}</div>
@@ -184,7 +185,7 @@ const DepartmentDashboard = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-credit-card"></i>
+              <LuCreditCard size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalSpent)}</div>
@@ -193,7 +194,7 @@ const DepartmentDashboard = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-wallet"></i>
+              <LuWallet size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalRemaining)}</div>
@@ -202,7 +203,7 @@ const DepartmentDashboard = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-chart-pie"></i>
+              <LuPieChart size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{stats.summary.utilizationPercentage}%</div>
@@ -224,7 +225,7 @@ const DepartmentDashboard = () => {
                     <h3 className="budget-head-name">{allocation.budgetHeadName}</h3>
                     <span className="budget-head-code">{allocation.budgetHeadCode}</span>
                   </div>
-                  
+
                   <div className="budget-amounts">
                     <div className="amount-row">
                       <span className="label">Allocated:</span>
@@ -239,7 +240,7 @@ const DepartmentDashboard = () => {
                       <span className="amount remaining">{formatCurrency(allocation.remainingAmount)}</span>
                     </div>
                   </div>
-                  
+
                   <div className="utilization-bar">
                     <div className="utilization-fill" style={{
                       width: `${utilization}%`,
@@ -247,16 +248,16 @@ const DepartmentDashboard = () => {
                     }}></div>
                     <span className="utilization-text">{utilization}%</span>
                   </div>
-                  
+
                   <div className="budget-status">
                     {allocation.remainingAmount > 0 ? (
                       <span className="status available">
-                        <i className="fas fa-check-circle"></i>
+                        <LuCheckCircle size={16} />
                         Budget Available
                       </span>
                     ) : (
                       <span className="status exhausted">
-                        <i className="fas fa-exclamation-triangle"></i>
+                        <LuAlertTriangle size={16} />
                         Budget Exhausted
                       </span>
                     )}
@@ -282,13 +283,13 @@ const DepartmentDashboard = () => {
                     <span className="bill-date">{formatDate(expenditure.billDate)}</span>
                   </div>
                 </div>
-                
+
                 <div className="expenditure-amount">
                   <span className="amount">{formatCurrency(expenditure.billAmount)}</span>
                 </div>
-                
+
                 <div className="expenditure-status">
-                  <span 
+                  <span
                     className="status-badge"
                     style={{ backgroundColor: getStatusColor(expenditure.status) }}
                   >
@@ -298,11 +299,11 @@ const DepartmentDashboard = () => {
               </div>
             ))}
           </div>
-          
+
           {expenditures.length === 0 && (
             <div className="no-expenditures">
               <div className="no-expenditures-icon">
-                <i className="fas fa-receipt"></i>
+                <LuReceipt size={16} />
               </div>
               <h3>No Expenditures</h3>
               <p>No expenditures have been submitted yet.</p>
@@ -315,15 +316,15 @@ const DepartmentDashboard = () => {
         <h2>Quick Actions</h2>
         <div className="action-buttons">
           <button className="btn btn-primary">
-            <i className="fas fa-plus"></i>
+            <LuPlus size={18} />
             Submit New Expenditure
           </button>
           <button className="btn btn-secondary">
-            <i className="fas fa-list"></i>
+            <LuList size={18} />
             View All Expenditures
           </button>
           <button className="btn btn-secondary">
-            <i className="fas fa-download"></i>
+            <LuDownload size={18} />
             Download Report
           </button>
         </div>

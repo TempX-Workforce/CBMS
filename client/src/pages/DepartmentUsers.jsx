@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usersAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { LuCrown, LuUsers, LuUserCheck, LuUserX } from 'react-icons/lu';
 import './DepartmentUsers.css';
 
 const DepartmentUsers = () => {
@@ -26,7 +27,7 @@ const DepartmentUsers = () => {
       const params = {};
       if (filters.search) params.search = filters.search;
       if (filters.isActive) params.isActive = filters.isActive;
-      
+
       const response = await usersAPI.getUsersByDepartment(user.department, params);
       setDepartmentUsers(response.data.data.users);
       setDepartment(response.data.data.department);
@@ -153,7 +154,7 @@ const DepartmentUsers = () => {
               <h3 className="user-name">{user.name}</h3>
               <p className="user-email">{user.email}</p>
               <div className="user-role">
-                <span 
+                <span
                   className="role-badge"
                   style={{ backgroundColor: getRoleColor(user.role) }}
                 >
@@ -175,7 +176,7 @@ const DepartmentUsers = () => {
             <div className="user-actions">
               {user.role === 'hod' && (
                 <div className="hod-badge">
-                  <i className="fas fa-crown"></i>
+                  <LuCrown size={14} />
                   HOD
                 </div>
               )}
@@ -187,7 +188,7 @@ const DepartmentUsers = () => {
       {departmentUsers.length === 0 && (
         <div className="no-users">
           <div className="no-users-icon">
-            <i className="fas fa-users"></i>
+            <LuUsers size={20} />
           </div>
           <h3>No Users Found</h3>
           <p>No users found in your department matching the current filters.</p>
@@ -197,7 +198,7 @@ const DepartmentUsers = () => {
       <div className="department-stats">
         <div className="stats-card">
           <div className="stat-icon">
-            <i className="fas fa-users"></i>
+            <LuUsers size={20} />
           </div>
           <div className="stat-info">
             <div className="stat-number">{departmentUsers.length}</div>
@@ -206,7 +207,7 @@ const DepartmentUsers = () => {
         </div>
         <div className="stats-card">
           <div className="stat-icon">
-            <i className="fas fa-user-check"></i>
+            <LuUserCheck size={20} />
           </div>
           <div className="stat-info">
             <div className="stat-number">
@@ -217,7 +218,7 @@ const DepartmentUsers = () => {
         </div>
         <div className="stats-card">
           <div className="stat-icon">
-            <i className="fas fa-user-times"></i>
+            <LuUserX size={20} />
           </div>
           <div className="stat-info">
             <div className="stat-number">
@@ -228,7 +229,7 @@ const DepartmentUsers = () => {
         </div>
         <div className="stats-card">
           <div className="stat-icon">
-            <i className="fas fa-crown"></i>
+            <LuCrown size={20} />
           </div>
           <div className="stat-info">
             <div className="stat-number">

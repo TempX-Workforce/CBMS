@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { allocationAPI, departmentsAPI, budgetHeadsAPI } from '../services/api';
+import { LuPlus, LuDollarSign, LuCreditCard, LuWallet, LuPieChart, LuPencil, LuTrash2, LuX } from 'react-icons/lu';
 import './BudgetAllocations.css';
 
 const BudgetAllocations = () => {
@@ -32,21 +33,21 @@ const BudgetAllocations = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch allocations with filters
       const allocationParams = {};
       if (filters.search) allocationParams.search = filters.search;
       if (filters.departmentId) allocationParams.departmentId = filters.departmentId;
       if (filters.budgetHeadId) allocationParams.budgetHeadId = filters.budgetHeadId;
       if (filters.financialYear) allocationParams.financialYear = filters.financialYear;
-      
+
       const [allocationsResponse, departmentsResponse, budgetHeadsResponse, statsResponse] = await Promise.all([
         allocationAPI.getAllocations(allocationParams),
         departmentsAPI.getDepartments(),
         budgetHeadsAPI.getBudgetHeads(),
         allocationAPI.getAllocationStats()
       ]);
-      
+
       setAllocations(allocationsResponse.data.data.allocations);
       setDepartments(departmentsResponse.data.data.departments);
       setBudgetHeads(budgetHeadsResponse.data.data.budgetHeads);
@@ -84,7 +85,7 @@ const BudgetAllocations = () => {
       } else {
         await allocationAPI.createAllocation(formData);
       }
-      
+
       setShowModal(false);
       setEditingAllocation(null);
       setFormData({
@@ -174,7 +175,7 @@ const BudgetAllocations = () => {
       <div className="allocations-header">
         <h1>Budget Allocations Management</h1>
         <button className="btn btn-primary" onClick={openModal}>
-          <i className="fas fa-plus"></i> Add Allocation
+          <LuPlus size={18} /> Add Allocation
         </button>
       </div>
 
@@ -188,7 +189,7 @@ const BudgetAllocations = () => {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-money-bill-wave"></i>
+              <LuDollarSign size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">₹{stats.summary.totalAllocated.toLocaleString()}</div>
@@ -197,7 +198,7 @@ const BudgetAllocations = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-credit-card"></i>
+              <LuCreditCard size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">₹{stats.summary.totalSpent.toLocaleString()}</div>
@@ -206,7 +207,7 @@ const BudgetAllocations = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-wallet"></i>
+              <LuWallet size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">₹{stats.summary.totalRemaining.toLocaleString()}</div>
@@ -215,7 +216,7 @@ const BudgetAllocations = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-chart-pie"></i>
+              <LuPieChart size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{stats.summary.utilizationPercentage}%</div>
@@ -323,17 +324,17 @@ const BudgetAllocations = () => {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button 
+                      <button
                         className="btn btn-sm btn-secondary"
                         onClick={() => handleEdit(allocation)}
                       >
-                        <i className="fas fa-edit"></i>
+                        <LuPencil size={16} />
                       </button>
-                      <button 
+                      <button
                         className="btn btn-sm btn-danger"
                         onClick={() => handleDelete(allocation._id)}
                       >
-                        <i className="fas fa-trash"></i>
+                        <LuTrash2 size={16} />
                       </button>
                     </div>
                   </td>
@@ -347,7 +348,7 @@ const BudgetAllocations = () => {
       {allocations.length === 0 && (
         <div className="no-allocations">
           <div className="no-allocations-icon">
-            <i className="fas fa-money-bill-wave"></i>
+            <LuDollarSign size={48} />
           </div>
           <h3>No Allocations Found</h3>
           <p>No allocations found matching the current filters.</p>
@@ -360,7 +361,7 @@ const BudgetAllocations = () => {
             <div className="modal-header">
               <h2>{editingAllocation ? 'Edit Allocation' : 'Add New Allocation'}</h2>
               <button className="close-btn" onClick={closeModal}>
-                <i className="fas fa-times"></i>
+                <LuX size={20} />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="modal-form">
@@ -379,7 +380,7 @@ const BudgetAllocations = () => {
                   ))}
                 </select>
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="budgetHeadId">Budget Head *</label>
                 <select
@@ -395,7 +396,7 @@ const BudgetAllocations = () => {
                   ))}
                 </select>
               </div>
-              
+
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="allocatedAmount">Allocated Amount *</label>
@@ -411,7 +412,7 @@ const BudgetAllocations = () => {
                     placeholder="Enter amount"
                   />
                 </div>
-                
+
                 <div className="form-group">
                   <label htmlFor="financialYear">Financial Year *</label>
                   <input
@@ -425,7 +426,7 @@ const BudgetAllocations = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="remarks">Remarks</label>
                 <textarea
@@ -437,7 +438,7 @@ const BudgetAllocations = () => {
                   rows="3"
                 />
               </div>
-              
+
               <div className="modal-actions">
                 <button type="button" className="btn btn-secondary" onClick={closeModal}>
                   Cancel

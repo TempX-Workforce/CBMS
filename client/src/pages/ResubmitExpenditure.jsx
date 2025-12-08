@@ -2,19 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { expenditureAPI, allocationAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { LuSend } from 'react-icons/lu';
 import './ResubmitExpenditure.css';
 
 const ResubmitExpenditure = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [expenditure, setExpenditure] = useState(null);
   const [allocations, setAllocations] = useState([]);
-  
+
   const [formData, setFormData] = useState({
     billNumber: '',
     billDate: '',
@@ -25,7 +26,7 @@ const ResubmitExpenditure = () => {
     remarks: '',
     attachments: []
   });
-  
+
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -37,9 +38,9 @@ const ResubmitExpenditure = () => {
     try {
       const response = await expenditureAPI.getExpenditureById(id);
       const expenditureData = response.data.data.expenditure;
-      
+
       setExpenditure(expenditureData);
-      
+
       // Pre-fill form with original data
       setFormData({
         billNumber: expenditureData.billNumber,
@@ -77,7 +78,7 @@ const ResubmitExpenditure = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -97,20 +98,20 @@ const ResubmitExpenditure = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.billNumber.trim()) newErrors.billNumber = 'Bill number is required';
     if (!formData.billDate) newErrors.billDate = 'Bill date is required';
     if (!formData.billAmount || formData.billAmount <= 0) newErrors.billAmount = 'Valid bill amount is required';
     if (!formData.partyName.trim()) newErrors.partyName = 'Party name is required';
     if (!formData.expenseDetails.trim()) newErrors.expenseDetails = 'Expense details are required';
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setSubmitting(true);
@@ -135,8 +136,8 @@ const ResubmitExpenditure = () => {
       const response = await expenditureAPI.resubmitExpenditure(id, formDataToSend);
 
       if (response.data.success) {
-        navigate('/expenditures', { 
-          state: { message: 'Expenditure resubmitted successfully!' } 
+        navigate('/expenditures', {
+          state: { message: 'Expenditure resubmitted successfully!' }
         });
       } else {
         setError(response.data.message);
@@ -210,7 +211,7 @@ const ResubmitExpenditure = () => {
             <span className="value status-rejected">{expenditure.status}</span>
           </div>
         </div>
-        
+
         {expenditure.remarks && (
           <div className="rejection-reason">
             <h4>Rejection Reason:</h4>
@@ -222,7 +223,7 @@ const ResubmitExpenditure = () => {
       <form onSubmit={handleSubmit} className="resubmit-form">
         <div className="form-section">
           <h3>Expenditure Details</h3>
-          
+
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="billNumber">Bill Number *</label>
@@ -237,7 +238,7 @@ const ResubmitExpenditure = () => {
               />
               {errors.billNumber && <span className="error-text">{errors.billNumber}</span>}
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="billDate">Bill Date *</label>
               <input
@@ -268,7 +269,7 @@ const ResubmitExpenditure = () => {
               />
               {errors.billAmount && <span className="error-text">{errors.billAmount}</span>}
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="partyName">Party Name *</label>
               <input
@@ -356,7 +357,7 @@ const ResubmitExpenditure = () => {
               </>
             ) : (
               <>
-                <i className="fas fa-paper-plane"></i>
+                <LuSend size={16} />
                 Resubmit Expenditure
               </>
             )}

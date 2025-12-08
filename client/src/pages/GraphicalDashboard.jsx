@@ -16,6 +16,7 @@ import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { allocationAPI, expenditureAPI, reportAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { LuRefreshCw } from 'react-icons/lu';
 import './GraphicalDashboard.css';
 
 // Register Chart.js components
@@ -41,7 +42,7 @@ const GraphicalDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    
+
     // Set up auto-refresh every 30 seconds
     const interval = setInterval(fetchDashboardData, 30000);
     setRefreshInterval(interval);
@@ -54,13 +55,13 @@ const GraphicalDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       const [allocationResponse, expenditureResponse, reportResponse] = await Promise.all([
-        allocationAPI.getAllocations({ 
+        allocationAPI.getAllocations({
           departmentId: user.role === 'department' ? user.department : undefined,
           financialYear: timeRange === 'current' ? '2024-25' : '2023-24'
         }),
-        expenditureAPI.getExpenditures({ 
+        expenditureAPI.getExpenditures({
           departmentId: user.role === 'department' ? user.department : undefined,
           status: 'approved'
         }),
@@ -177,17 +178,17 @@ const GraphicalDashboard = () => {
         {
           label: 'Budget Utilization %',
           data: departmentData.map(d => d.utilization),
-          backgroundColor: departmentData.map(d => 
+          backgroundColor: departmentData.map(d =>
             d.utilization > 90 ? 'rgba(220, 53, 69, 0.8)' :
-            d.utilization > 75 ? 'rgba(255, 193, 7, 0.8)' :
-            d.utilization > 50 ? 'rgba(23, 162, 184, 0.8)' :
-            'rgba(40, 167, 69, 0.8)'
+              d.utilization > 75 ? 'rgba(255, 193, 7, 0.8)' :
+                d.utilization > 50 ? 'rgba(23, 162, 184, 0.8)' :
+                  'rgba(40, 167, 69, 0.8)'
           ),
-          borderColor: departmentData.map(d => 
+          borderColor: departmentData.map(d =>
             d.utilization > 90 ? 'rgba(220, 53, 69, 1)' :
-            d.utilization > 75 ? 'rgba(255, 193, 7, 1)' :
-            d.utilization > 50 ? 'rgba(23, 162, 184, 1)' :
-            'rgba(40, 167, 69, 1)'
+              d.utilization > 75 ? 'rgba(255, 193, 7, 1)' :
+                d.utilization > 50 ? 'rgba(23, 162, 184, 1)' :
+                  'rgba(40, 167, 69, 1)'
           ),
           borderWidth: 1,
         },
@@ -297,7 +298,7 @@ const GraphicalDashboard = () => {
         },
         tooltip: {
           callbacks: {
-            label: function(context) {
+            label: function (context) {
               return `${context.dataset.label}: ${formatCurrency(context.parsed.y || context.parsed)}`;
             }
           }
@@ -312,7 +313,7 @@ const GraphicalDashboard = () => {
           y: {
             beginAtZero: true,
             ticks: {
-              callback: function(value) {
+              callback: function (value) {
                 return formatCurrency(value);
               }
             }
@@ -328,7 +329,7 @@ const GraphicalDashboard = () => {
           y: {
             beginAtZero: true,
             ticks: {
-              callback: function(value) {
+              callback: function (value) {
                 return formatCurrency(value);
               }
             }
@@ -460,7 +461,7 @@ const GraphicalDashboard = () => {
               </select>
             </div>
             <button className="refresh-btn" onClick={fetchDashboardData}>
-              <i className="fas fa-sync-alt"></i>
+              <LuRefreshCw size={16} />
               Refresh
             </button>
           </div>

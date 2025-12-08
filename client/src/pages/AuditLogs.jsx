@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { auditLogAPI } from '../services/api';
+import { LuDownload, LuList, LuUsers, LuLineChart, LuClipboardList, LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import './AuditLogs.css';
 
 const AuditLogs = () => {
@@ -35,7 +36,7 @@ const AuditLogs = () => {
         limit: 20,
         ...filters
       };
-      
+
       const response = await auditLogAPI.getAuditLogs(params);
       setAuditLogs(response.data.data.auditLogs);
       setPagination(response.data.data.pagination);
@@ -76,13 +77,13 @@ const AuditLogs = () => {
         format: 'csv',
         ...filters
       });
-      
+
       const response = await fetch(`/api/audit-logs/export?${params}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
+
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -154,7 +155,7 @@ const AuditLogs = () => {
         <h1>Audit Logs</h1>
         <div className="header-actions">
           <button className="btn btn-primary" onClick={handleExport}>
-            <i className="fas fa-download"></i>
+            <LuDownload size={16} />
             Export CSV
           </button>
         </div>
@@ -170,7 +171,7 @@ const AuditLogs = () => {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-list"></i>
+              <LuList size={20} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{stats.totalLogs}</div>
@@ -179,7 +180,7 @@ const AuditLogs = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-users"></i>
+              <LuUsers size={20} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{Object.keys(stats.logsByActorRole).length}</div>
@@ -188,7 +189,7 @@ const AuditLogs = () => {
           </div>
           <div className="stat-card">
             <div className="stat-icon">
-              <i className="fas fa-chart-line"></i>
+              <LuLineChart size={20} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{Object.keys(stats.logsByEventType).length}</div>
@@ -298,7 +299,7 @@ const AuditLogs = () => {
                   {formatDate(log.createdAt)}
                 </td>
                 <td className="event-type">
-                  <span 
+                  <span
                     className="event-badge"
                     style={{ backgroundColor: getEventTypeColor(log.eventType) }}
                   >
@@ -347,7 +348,7 @@ const AuditLogs = () => {
       {auditLogs.length === 0 && (
         <div className="no-logs">
           <div className="no-logs-icon">
-            <i className="fas fa-clipboard-list"></i>
+            <LuClipboardList size={48} />
           </div>
           <h3>No Audit Logs Found</h3>
           <p>No audit logs found matching the current filters.</p>
@@ -356,26 +357,26 @@ const AuditLogs = () => {
 
       {pagination.totalPages > 1 && (
         <div className="pagination">
-          <button 
+          <button
             className="btn btn-secondary"
             onClick={() => handlePageChange(pagination.currentPage - 1)}
             disabled={pagination.currentPage === 1}
           >
-            <i className="fas fa-chevron-left"></i>
+            <LuChevronLeft size={18} />
             Previous
           </button>
-          
+
           <span className="page-info">
             Page {pagination.currentPage} of {pagination.totalPages}
           </span>
-          
-          <button 
+
+          <button
             className="btn btn-secondary"
             onClick={() => handlePageChange(pagination.currentPage + 1)}
             disabled={pagination.currentPage === pagination.totalPages}
           >
             Next
-            <i className="fas fa-chevron-right"></i>
+            <LuChevronRight size={18} />
           </button>
         </div>
       )}
