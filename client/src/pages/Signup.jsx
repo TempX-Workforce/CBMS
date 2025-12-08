@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { LuGraduationCap, LuAlertCircle, LuUserPlus } from 'react-icons/lu';
 import './Signup.css';
 
 const Signup = () => {
@@ -23,7 +24,7 @@ const Signup = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -35,27 +36,27 @@ const Signup = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     if (formData.role === 'department' && !formData.department) {
       newErrors.department = 'Department is required for department users';
     }
@@ -66,21 +67,21 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsLoading(true);
     try {
       await register(formData);
-      navigate('/login', { 
-        state: { 
-          message: 'Registration successful! Please login with your credentials.' 
+      navigate('/login', {
+        state: {
+          message: 'Registration successful! Please login with your credentials.'
         }
       });
     } catch (error) {
       console.error('Registration error:', error);
-      setErrors({ 
-        submit: error.response?.data?.message || 'Registration failed. Please try again.' 
+      setErrors({
+        submit: error.response?.data?.message || 'Registration failed. Please try again.'
       });
     } finally {
       setIsLoading(false);
@@ -112,7 +113,7 @@ const Signup = () => {
       <div className="signup-card">
         <div className="signup-header">
           <div className="logo">
-            <span className="logo-icon">🎓</span>
+            <span className="logo-icon"><LuGraduationCap size={32} /></span>
             <span className="logo-text">CBMS</span>
           </div>
           <h1 className="signup-title">Create Account</h1>
@@ -122,7 +123,7 @@ const Signup = () => {
         <form onSubmit={handleSubmit} className="signup-form">
           {errors.submit && (
             <div className="alert alert-error">
-              <span className="alert-icon">⚠️</span>
+              <LuAlertCircle size={20} />
               {errors.submit}
             </div>
           )}
@@ -258,7 +259,7 @@ const Signup = () => {
               </>
             ) : (
               <>
-                <span>👤</span>
+                <LuUserPlus size={18} />
                 Create Account
               </>
             )}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { notificationAPI } from '../../services/api';
+import { LuBell, LuFileText, LuCheckCircle, LuXCircle, LuDollarSign, LuAlertTriangle, LuClock, LuMegaphone, LuTrash2 } from 'react-icons/lu';
 import './NotificationBell.css';
 
 const NotificationBell = () => {
@@ -32,9 +33,9 @@ const NotificationBell = () => {
   const markAsRead = async (notificationId) => {
     try {
       await notificationAPI.markAsRead(notificationId);
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif._id === notificationId 
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif._id === notificationId
             ? { ...notif, isRead: true, readAt: new Date() }
             : notif
         )
@@ -48,7 +49,7 @@ const NotificationBell = () => {
   const markAllAsRead = async () => {
     try {
       await notificationAPI.markAllAsRead();
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(notif => ({ ...notif, isRead: true, readAt: new Date() }))
       );
       setUnreadCount(0);
@@ -93,37 +94,37 @@ const NotificationBell = () => {
 
   const getTypeIcon = (type) => {
     const icons = {
-      expenditure_submitted: '📝',
-      expenditure_verified: '✅',
-      expenditure_approved: '✅',
-      expenditure_rejected: '❌',
-      budget_allocation_created: '💰',
-      budget_exhaustion_warning: '⚠️',
-      approval_reminder: '⏰',
-      system_announcement: '📢'
+      expenditure_submitted: <LuFileText />,
+      expenditure_verified: <LuCheckCircle />,
+      expenditure_approved: <LuCheckCircle />,
+      expenditure_rejected: <LuXCircle />,
+      budget_allocation_created: <LuDollarSign />,
+      budget_exhaustion_warning: <LuAlertTriangle />,
+      approval_reminder: <LuClock />,
+      system_announcement: <LuMegaphone />
     };
-    return icons[type] || '📄';
+    return icons[type] || <LuFileText />;
   };
 
   const handleNotificationClick = (notification) => {
     if (!notification.isRead) {
       markAsRead(notification._id);
     }
-    
+
     if (notification.actionUrl) {
       window.location.href = notification.actionUrl;
     }
-    
+
     setIsOpen(false);
   };
 
   return (
     <div className="notification-bell">
-      <button 
+      <button
         className="bell-button"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="bell-icon">🔔</span>
+        <LuBell size={20} />
         {unreadCount > 0 && (
           <span className="notification-badge">{unreadCount}</span>
         )}
@@ -134,7 +135,7 @@ const NotificationBell = () => {
           <div className="notification-header">
             <h3>Notifications</h3>
             {unreadCount > 0 && (
-              <button 
+              <button
                 onClick={markAllAsRead}
                 className="mark-all-read-btn"
               >
@@ -146,7 +147,7 @@ const NotificationBell = () => {
           <div className="notification-list">
             {notifications.length === 0 ? (
               <div className="no-notifications">
-                <span className="no-notifications-icon">🔔</span>
+                <LuBell size={48} />
                 <p>No notifications</p>
               </div>
             ) : (
@@ -171,7 +172,7 @@ const NotificationBell = () => {
                         <span className="notification-time">
                           {formatTimeAgo(notification.createdAt)}
                         </span>
-                        <span 
+                        <span
                           className="notification-priority"
                           style={{ color: getPriorityColor(notification.priority) }}
                         >
@@ -189,7 +190,7 @@ const NotificationBell = () => {
                       className="delete-btn"
                       title="Delete notification"
                     >
-                      🗑️
+                      <LuTrash2 size={16} />
                     </button>
                   </div>
                 </div>
@@ -209,7 +210,7 @@ const NotificationBell = () => {
 
       {/* Overlay to close dropdown when clicking outside */}
       {isOpen && (
-        <div 
+        <div
           className="notification-overlay"
           onClick={() => setIsOpen(false)}
         ></div>

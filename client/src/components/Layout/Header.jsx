@@ -2,6 +2,27 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../Notifications/NotificationBell';
+import {
+  LuLayoutDashboard,
+  LuLineChart,
+  LuUsers,
+  LuBuilding2,
+  LuWallet,
+  LuSettings,
+  LuClipboardList,
+  LuCheckSquare,
+  LuCalculator,
+  LuUser,
+  LuLock,
+  LuLogOut,
+  LuFileText,
+  LuSearch,
+  LuPlusCircle,
+  LuFiles,
+  LuMenu,
+  LuGraduationCap,
+  LuChevronDown
+} from 'react-icons/lu';
 import './Header.css';
 
 const Header = () => {
@@ -40,51 +61,51 @@ const Header = () => {
     if (!user) return [];
 
     const baseItems = [
-      { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-      { path: '/graphical-dashboard', label: 'Analytics', icon: '📈' },
+      { path: '/dashboard', label: 'Dashboard', icon: <LuLayoutDashboard /> },
+      { path: '/graphical-dashboard', label: 'Analytics', icon: <LuLineChart /> },
     ];
 
     switch (user.role) {
       case 'admin':
         return [
           ...baseItems,
-          { path: '/users', label: 'Users', icon: '👥' },
-          { path: '/departments', label: 'Departments', icon: '🏢' },
-          { path: '/budget-heads', label: 'Budget Heads', icon: '💰' },
-          { path: '/settings', label: 'Settings', icon: '⚙️' },
+          { path: '/users', label: 'Users', icon: <LuUsers /> },
+          { path: '/departments', label: 'Departments', icon: <LuBuilding2 /> },
+          { path: '/budget-heads', label: 'Budget Heads', icon: <LuWallet /> },
+          { path: '/settings', label: 'Settings', icon: <LuSettings /> },
         ];
       case 'office':
         return [
           ...baseItems,
-          { path: '/allocations', label: 'Allocations', icon: '📋' },
-          { path: '/approvals', label: 'Approvals', icon: '✅' },
-          { path: '/reports', label: 'Reports', icon: '📈' },
+          { path: '/allocations', label: 'Allocations', icon: <LuClipboardList /> },
+          { path: '/approvals', label: 'Approvals', icon: <LuCheckSquare /> },
+          { path: '/reports', label: 'Reports', icon: <LuFileText /> },
         ];
       case 'department':
         return [
           ...baseItems,
-          { path: '/expenditures', label: 'My Expenditures', icon: '💸' },
-          { path: '/submit-expenditure', label: 'Submit Expenditure', icon: '➕' },
+          { path: '/expenditures', label: 'My Expenditures', icon: <LuCalculator /> },
+          { path: '/submit-expenditure', label: 'Submit Expenditure', icon: <LuPlusCircle /> },
         ];
       case 'hod':
         return [
           ...baseItems,
-          { path: '/department-expenditures', label: 'Department Expenditures', icon: '📝' },
-          { path: '/approvals', label: 'Approvals', icon: '✅' },
+          { path: '/department-expenditures', label: 'Department Expenditures', icon: <LuFiles /> },
+          { path: '/approvals', label: 'Approvals', icon: <LuCheckSquare /> },
         ];
       case 'vice_principal':
       case 'principal':
         return [
           ...baseItems,
-          { path: '/approvals', label: 'Approvals', icon: '✅' },
-          { path: '/reports', label: 'Reports', icon: '📈' },
-          { path: '/consolidated-view', label: 'Consolidated View', icon: '📊' },
+          { path: '/approvals', label: 'Approvals', icon: <LuCheckSquare /> },
+          { path: '/reports', label: 'Reports', icon: <LuFileText /> },
+          { path: '/consolidated-view', label: 'Consolidated View', icon: <LuLineChart /> },
         ];
       case 'auditor':
         return [
           ...baseItems,
-          { path: '/audit-logs', label: 'Audit Logs', icon: '🔍' },
-          { path: '/reports', label: 'Reports', icon: '📈' },
+          { path: '/audit-logs', label: 'Audit Logs', icon: <LuSearch /> },
+          { path: '/reports', label: 'Reports', icon: <LuFileText /> },
         ];
       default:
         return baseItems;
@@ -96,7 +117,7 @@ const Header = () => {
       <div className="header-container">
         {/* Logo */}
         <Link to="/" className="logo">
-          <span className="logo-icon">🎓</span>
+          <span className="logo-icon"><LuGraduationCap /></span>
           <span className="logo-text">CBMS</span>
         </Link>
 
@@ -127,23 +148,23 @@ const Header = () => {
               <span className="user-name">{user?.name}</span>
               <span className="user-role">{getRoleDisplayName(user?.role)}</span>
             </div>
-            <span className="dropdown-arrow">▼</span>
+            <span className="dropdown-arrow"><LuChevronDown /></span>
           </div>
 
           {/* Profile Dropdown */}
           {isProfileOpen && (
             <div className="profile-dropdown">
               <Link to="/profile" className="dropdown-item">
-                <span className="dropdown-icon">👤</span>
+                <span className="dropdown-icon"><LuUser /></span>
                 Profile
               </Link>
               <Link to="/change-password" className="dropdown-item">
-                <span className="dropdown-icon">🔒</span>
+                <span className="dropdown-icon"><LuLock /></span>
                 Change Password
               </Link>
               <div className="dropdown-divider"></div>
               <button onClick={handleLogout} className="dropdown-item logout-btn">
-                <span className="dropdown-icon">🚪</span>
+                <span className="dropdown-icon"><LuLogOut /></span>
                 Logout
               </button>
             </div>

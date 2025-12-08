@@ -7,7 +7,7 @@ import './SubmitExpenditure.css';
 const SubmitExpenditure = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
     budgetHeadId: '',
     billNumber: '',
@@ -59,9 +59,9 @@ const SubmitExpenditure = () => {
   const fetchAllocations = async () => {
     try {
       const currentYear = getCurrentFinancialYear();
-      const response = await allocationAPI.getAllocations({ 
+      const response = await allocationAPI.getAllocations({
         financialYear: currentYear,
-        departmentId: user.department 
+        departmentId: user.department
       });
       setAllocations(response.data.data.allocations);
     } catch (error) {
@@ -141,7 +141,7 @@ const SubmitExpenditure = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsSubmitting(true);
@@ -166,8 +166,8 @@ const SubmitExpenditure = () => {
       const response = await expenditureAPI.submitExpenditure(formDataToSend);
 
       if (response.data.success) {
-        navigate('/expenditures', { 
-          state: { message: 'Expenditure submitted successfully!' } 
+        navigate('/expenditures', {
+          state: { message: 'Expenditure submitted successfully!' }
         });
       } else {
         setErrors({ submit: response.data.message });
@@ -210,7 +210,7 @@ const SubmitExpenditure = () => {
         <form onSubmit={handleSubmit} className="expenditure-form">
           {errors.submit && (
             <div className="alert alert-danger">
-              <span className="error-icon">⚠️</span>
+              <LuAlertCircle size={20} />
               {errors.submit}
             </div>
           )}
