@@ -351,10 +351,7 @@ const ResubmitExpenditure = () => {
           </button>
           <button type="submit" disabled={submitting} className="btn btn-primary">
             {submitting ? (
-              <>
-                <span className="spinner"></span>
-                Resubmitting...
-              </>
+              'Resubmitting...'
             ) : (
               <>
                 <Send size={16} />

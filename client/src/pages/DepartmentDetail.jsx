@@ -138,7 +138,6 @@ const DepartmentDetail = () => {
         return (
             <div className="department-detail-container">
                 <div className="loading">
-                    <div className="loading-spinner"></div>
                     <p>Loading department details...</p>
                 </div>
             </div>

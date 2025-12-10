@@ -28,7 +28,7 @@ const BulkUpload = () => {
   const handleDownloadTemplate = async () => {
     try {
       const response = await allocationAPI.getCSVTemplate();
-      
+
       // Create blob and download
       const blob = new Blob([response.data], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
@@ -61,7 +61,7 @@ const BulkUpload = () => {
       formData.append('csvFile', selectedFile);
 
       const response = await allocationAPI.bulkUploadCSV(formData);
-      
+
       if (response.data.success) {
         setSuccess(response.data.message);
         setUploadResults(response.data.data);
@@ -121,7 +121,7 @@ const BulkUpload = () => {
         <div className="template-section">
           <h3>Step 1: Download Template</h3>
           <p>Download the CSV template to see the required format and add your allocation data.</p>
-          <button 
+          <button
             className="btn btn-secondary"
             onClick={handleDownloadTemplate}
           >
@@ -133,7 +133,7 @@ const BulkUpload = () => {
         <div className="upload-section-content">
           <h3>Step 2: Upload CSV File</h3>
           <p>Select your CSV file with allocation data and upload it.</p>
-          
+
           <div className="file-upload-area">
             <input
               type="file"
@@ -163,16 +163,13 @@ const BulkUpload = () => {
           </div>
 
           <div className="upload-actions">
-            <button 
+            <button
               className="btn btn-primary"
               onClick={handleUpload}
               disabled={!selectedFile || loading}
             >
               {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  Uploading...
-                </>
+                'Uploading...'
               ) : (
                 <>
                   <i className="fas fa-upload"></i>
@@ -240,7 +237,7 @@ const BulkUpload = () => {
           )}
 
           <div className="results-actions">
-            <button 
+            <button
               className="btn btn-secondary"
               onClick={handleDownloadReport}
             >

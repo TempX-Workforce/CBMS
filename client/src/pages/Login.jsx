@@ -110,10 +110,7 @@ const Login = () => {
             className="login-button"
           >
             {isLoading ? (
-              <>
-                <span className="spinner"></span>
-                Signing In...
-              </>
+              'Logging In...'
             ) : (
               'Sign In'
             )}

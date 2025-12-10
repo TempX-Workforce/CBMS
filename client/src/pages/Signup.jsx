@@ -253,10 +253,7 @@ const Signup = () => {
             className="btn btn-primary btn-full"
           >
             {isLoading ? (
-              <>
-                <span className="spinner"></span>
-                Creating Account...
-              </>
+              'Creating Account...'
             ) : (
               <>
                 <UserPlus size={18} />

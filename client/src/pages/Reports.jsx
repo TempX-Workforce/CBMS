@@ -537,10 +537,7 @@ const Reports = () => {
             disabled={loading}
           >
             {loading ? (
-              <>
-                <span className="spinner"></span>
-                Generating...
-              </>
+              'Generating...'
             ) : (
               <>
                 <Download size={16} />

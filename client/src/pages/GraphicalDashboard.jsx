@@ -374,7 +374,6 @@ const GraphicalDashboard = () => {
     return (
       <div className="graphical-dashboard-container">
         <div className="loading">
-          <div className="loading-spinner"></div>
           <p>Loading dashboard data...</p>
         </div>
       </div>

@@ -347,10 +347,7 @@ const ApprovalsQueue = () => {
                 disabled={isProcessing || (actionType === 'reject' && !remarks.trim())}
               >
                 {isProcessing ? (
-                  <>
-                    <span className="spinner"></span>
-                    Processing...
-                  </>
+                  'Processing...'
                 ) : (
                   <>
                     <i className={`fas fa-${actionType === 'approve' ? 'check' : 'times'}`}></i>

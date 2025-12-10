@@ -19,7 +19,7 @@ const YearComparison = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await allocationAPI.getYearComparison(filters);
       setComparisonData(response.data.data);
     } catch (err) {
@@ -333,7 +333,6 @@ const YearComparison = () => {
 
       {loading && (
         <div className="loading">
-          <div className="spinner"></div>
           <span>Loading comparison data...</span>
         </div>
       )}

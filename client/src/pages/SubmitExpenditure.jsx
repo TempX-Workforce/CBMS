@@ -191,10 +191,7 @@ const SubmitExpenditure = () => {
   if (isLoading) {
     return (
       <div className="submit-expenditure-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading...</p>
-        </div>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -388,10 +385,7 @@ const SubmitExpenditure = () => {
               className="btn btn-primary"
             >
               {isSubmitting ? (
-                <>
-                  <span className="spinner"></span>
-                  Submitting...
-                </>
+                'Submitting...'
               ) : (
                 'Submit Expenditure'
               )}
