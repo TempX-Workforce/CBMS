@@ -30,14 +30,17 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'https://tempx-workforce.github.io',
-      'https://cbms-mjcv.onrender.com', // Allow self
+      'https://cbms-mjcv.onrender.com',
       process.env.CORS_ORIGIN
-    ].filter(Boolean); // Filter out undefined/null
+    ].filter(Boolean);
+
+    // Normalize origin (remove trailing dot if present)
+    const normalizedOrigin = origin ? origin.replace(/\.$/, '') : origin;
 
     // Allow requests with no origin (like mobile apps, curl, or same-origin)
-    if (!origin) return callback(null, true);
+    if (!normalizedOrigin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.indexOf(normalizedOrigin) !== -1) {
       callback(null, true);
     } else {
       console.warn('Blocked by CORS:', origin);
