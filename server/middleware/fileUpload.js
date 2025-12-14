@@ -1,6 +1,34 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const NodeClam = require('clamscan');
+
+// Initialize ClamAV Scanner
+let clamScan = null;
+try {
+  new NodeClam().init({
+    remove_infected: true, // Removes infected files from disk
+    quarantine_infected: false,
+    debug_mode: process.env.NODE_ENV === 'development',
+    scan_recursively: false,
+    clamdscan: {
+      host: process.env.CLAMAV_HOST || 'localhost',
+      port: process.env.CLAMAV_PORT || 3310,
+      timeout: 60000,
+      local_fallback: false,
+      bypass_test: true, // Don't check for binary if using TCP
+      active: true
+    },
+    preference: 'clamdscan'
+  }).then(scanner => {
+    clamScan = scanner;
+    console.log(`✅ ClamAV Scanner initialized at ${process.env.CLAMAV_HOST || 'localhost'}:${process.env.CLAMAV_PORT || 3310}`);
+  }).catch(err => {
+    console.warn('⚠️ ClamAV Initialization failed (Virus scanning disabled):', err.message);
+  });
+} catch (err) {
+  console.warn('⚠️ ClamAV Setup Error:', err.message);
+}
 
 // Create uploads directory if it doesn't exist
 const uploadDir = path.join(__dirname, '../uploads');
@@ -14,11 +42,11 @@ const storage = multer.diskStorage({
     // Create department-specific folder
     const departmentId = req.body.departmentId || req.user?.department || 'general';
     const deptDir = path.join(uploadDir, departmentId);
-    
+
     if (!fs.existsSync(deptDir)) {
       fs.mkdirSync(deptDir, { recursive: true });
     }
-    
+
     cb(null, deptDir);
   },
   filename: (req, file, cb) => {
@@ -56,9 +84,9 @@ const upload = multer({
 // Middleware for handling file uploads
 const uploadMiddleware = upload.array('attachments', 5);
 
-// Enhanced file upload middleware with error handling
+// Enhanced file upload middleware with error handling and virus scanning
 const handleFileUpload = (req, res, next) => {
-  uploadMiddleware(req, res, (err) => {
+  uploadMiddleware(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({
@@ -79,16 +107,70 @@ const handleFileUpload = (req, res, next) => {
         });
       }
     }
-    
+
     if (err) {
       return res.status(400).json({
         success: false,
         message: err.message
       });
     }
-    
-    // Process uploaded files
+
+    // Process uploaded files and scan for viruses
     if (req.files && req.files.length > 0) {
+      const filesToProcess = req.files;
+      const scanResults = {
+        scanned: 0,
+        infected: 0,
+        clean: 0,
+        skipped: 0,
+        details: []
+      };
+
+      // Perform Virus Scan if Scanner is active
+      if (clamScan) {
+        try {
+          for (const file of filesToProcess) {
+            const result = await clamScan.is_infected(file.path);
+            const { is_infected, viruses } = result;
+
+            if (is_infected) {
+              console.warn(`🚨 Virus detected in ${file.originalname}: ${viruses.join(', ')}`);
+              scanResults.infected++;
+              scanResults.details.push({ file: file.originalname, status: 'infected', viruses });
+
+              // Delete the infected file immediately
+              if (fs.existsSync(file.path)) {
+                fs.unlinkSync(file.path);
+              }
+            } else {
+              scanResults.clean++;
+              scanResults.scanned++;
+            }
+          }
+        } catch (scanErr) {
+          console.error('Virus scan error:', scanErr);
+          scanResults.skipped = filesToProcess.length - scanResults.scanned;
+        }
+      } else {
+        scanResults.skipped = filesToProcess.length;
+      }
+
+      req.virusScanResults = scanResults;
+
+      // If any files were infected, fail the whole request and cleanup proper files if necessary
+      if (scanResults.infected > 0) {
+        // Cleanup other files from this batch to avoid partial uploads on error
+        filesToProcess.forEach(file => {
+          if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        });
+
+        return res.status(400).json({
+          success: false,
+          message: 'Upload rejected: Virus detected in one or more files.',
+          scanResults
+        });
+      }
+
       req.uploadedFiles = req.files.map(file => ({
         filename: file.filename,
         originalName: file.originalname,
@@ -98,7 +180,7 @@ const handleFileUpload = (req, res, next) => {
         url: `/uploads/${req.body.departmentId || req.user?.department || 'general'}/${file.filename}`
       }));
     }
-    
+
     next();
   });
 };
@@ -106,7 +188,7 @@ const handleFileUpload = (req, res, next) => {
 // File serving middleware
 const serveFiles = (req, res, next) => {
   const filePath = path.join(uploadDir, req.params.departmentId, req.params.filename);
-  
+
   // Check if file exists
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({
@@ -114,7 +196,7 @@ const serveFiles = (req, res, next) => {
       message: 'File not found'
     });
   }
-  
+
   // Set appropriate headers
   const ext = path.extname(filePath).toLowerCase();
   const mimeTypes = {
@@ -123,10 +205,10 @@ const serveFiles = (req, res, next) => {
     '.jpeg': 'image/jpeg',
     '.png': 'image/png'
   };
-  
+
   res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
   res.setHeader('Content-Disposition', `inline; filename="${path.basename(filePath)}"`);
-  
+
   // Stream the file
   const fileStream = fs.createReadStream(filePath);
   fileStream.pipe(res);
@@ -149,15 +231,15 @@ const deleteFile = (filePath) => {
 const cleanupOldFiles = (olderThanDays = 30) => {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
-  
+
   const cleanupDirectory = (dir) => {
     try {
       const files = fs.readdirSync(dir);
-      
+
       files.forEach(file => {
         const filePath = path.join(dir, file);
         const stats = fs.statSync(filePath);
-        
+
         if (stats.isDirectory()) {
           cleanupDirectory(filePath);
           // Remove empty directories
@@ -175,7 +257,7 @@ const cleanupOldFiles = (olderThanDays = 30) => {
       console.error('Error during cleanup:', error);
     }
   };
-  
+
   cleanupDirectory(uploadDir);
 };
 

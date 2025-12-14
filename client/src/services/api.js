@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const baseURL = process.env.NODE_ENV === 'production'
-  ? (process.env.VITE_API_URL || 'https://cbms-mjcv.onrender.com/api')
+  ? (process.env.VITE_API_URL || 'https://cbms-mjcv.onrender.com/')
   : '/api';
 
 const api = axios.create({
