@@ -25,7 +25,25 @@ const app = express();
 
 // Middleware
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // List of allowed origins
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://tempx-workforce.github.io',
+      'https://cbms-mjcv.onrender.com', // Allow self
+      process.env.CORS_ORIGIN
+    ].filter(Boolean); // Filter out undefined/null
+
+    // Allow requests with no origin (like mobile apps, curl, or same-origin)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn('Blocked by CORS:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: process.env.CORS_CREDENTIALS === 'true',
   optionsSuccessStatus: 200
 };
@@ -37,7 +55,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
-app.get('/', (req, res) => {
+const statusHandler = (req, res) => {
   res.json({
     success: true,
     message: 'CBMS Backend API is running!',
@@ -53,7 +71,11 @@ app.get('/', (req, res) => {
       reports: '/api/reports'
     }
   });
-});
+};
+
+app.get('/', statusHandler);
+app.get('/api', statusHandler);
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/notifications', notificationRoutes);
