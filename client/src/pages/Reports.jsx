@@ -28,15 +28,13 @@ const Reports = () => {
 
   const fetchMasterData = async () => {
     try {
-      const [departmentsRes, budgetHeadsRes, usersRes] = await Promise.all([
+      const [departmentsRes, budgetHeadsRes] = await Promise.all([
         departmentsAPI.getDepartments(),
-        budgetHeadsAPI.getBudgetHeads(),
-        usersAPI.getUsers()
+        budgetHeadsAPI.getBudgetHeads()
       ]);
 
       setDepartments(departmentsRes.data.data.departments);
       setBudgetHeads(budgetHeadsRes.data.data.budgetHeads);
-      setUsers(usersRes.data.data.users);
     } catch (err) {
       console.error('Error fetching master data:', err);
     }
