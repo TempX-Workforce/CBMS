@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { expenditureAPI } from '../services/api';
+import Tooltip from '../components/Tooltip/Tooltip';
 import { Check, X, Search, FileText } from 'lucide-react';
 import './ApprovalsQueue.css';
 
@@ -125,12 +126,16 @@ const ApprovalsQueue = () => {
                 <td>
                   {exp.status === 'pending' && (
                     <div className="action-buttons">
-                      <button className="btn-icon approve" onClick={() => handleAction(exp, 'approve')} title="Approve">
-                        <Check size={16} />
-                      </button>
-                      <button className="btn-icon reject" onClick={() => handleAction(exp, 'reject')} title="Reject">
-                        <X size={16} />
-                      </button>
+                      <Tooltip text="Approve" position="top">
+                        <button className="btn-icon approve" onClick={() => handleAction(exp, 'approve')}>
+                          <Check size={16} />
+                        </button>
+                      </Tooltip>
+                      <Tooltip text="Reject" position="top">
+                        <button className="btn-icon reject" onClick={() => handleAction(exp, 'reject')}>
+                          <X size={16} />
+                        </button>
+                      </Tooltip>
                     </div>
                   )}
                   {exp.status !== 'pending' && <span className="date-text">-</span>}

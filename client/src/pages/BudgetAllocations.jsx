@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { allocationAPI, departmentsAPI, budgetHeadsAPI } from '../services/api';
+import Tooltip from '../components/Tooltip/Tooltip';
 import { Plus, DollarSign, CreditCard, Wallet, PieChart, Pencil, Trash2, X } from 'lucide-react';
 import './BudgetAllocations.css';
 
@@ -324,18 +325,22 @@ const BudgetAllocations = () => {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => handleEdit(allocation)}
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDelete(allocation._id)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <Tooltip text="Edit Allocation" position="top">
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => handleEdit(allocation)}
+                        >
+                          <Pencil size={16} />
+                        </button>
+                      </Tooltip>
+                      <Tooltip text="Delete Allocation" position="top">
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => handleDelete(allocation._id)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </Tooltip>
                     </div>
                   </td>
                 </tr>

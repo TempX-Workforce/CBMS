@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Tooltip from '../components/Tooltip/Tooltip';
 import { GraduationCap, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import './Login.css';
 
@@ -12,7 +13,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { login, isAuthenticated, error, clearError } = useAuth();
+  const { login, isAuthenticated, error } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,17 +39,17 @@ const Login = () => {
 
   return (
     <div className="login-wrapper">
+      {/* LEFT SECTION */}
       <div className="login-left">
         <div className="illustration-container">
-           {/* Placeholder for illustration - in a real app this would be an SVG or Image */}
-           <div className="illustration-mockup">
-             <div className="building-icon-large">
-               <GraduationCap size={120} color="#1a237e" />
-             </div>
-             <div className="floating-coin">$</div>
-             <div className="floating-chart"></div>
-           </div>
+          <div className="illustration-mockup">
+            <div className="building-icon-large">
+              <GraduationCap size={120} color="#1a237e" />
+            </div>
+            <div className="floating-coin">$</div>
+          </div>
         </div>
+
         <div className="brand-section">
           <div className="brand-logo">
             <GraduationCap size={40} color="#1a237e" />
@@ -59,6 +60,7 @@ const Login = () => {
         </div>
       </div>
 
+      {/* RIGHT SECTION */}
       <div className="login-right">
         <div className="login-box">
           <div className="login-header">
@@ -73,33 +75,36 @@ const Login = () => {
               </div>
             )}
 
-            <div className="form-group">
+            {/* 🔥 FLOATING EMAIL */}
+            <div className="form-group floating">
+              <input
+                type="email"
+                name="email"
+                placeholder=" "
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
               <label>Institutional Email</label>
-              <div className="input-with-icon">
-                <span className="input-icon">✉️</span>
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Institutional Email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
             </div>
 
-            <div className="form-group">
+            {/* 🔥 FLOATING PASSWORD */}
+            <div className="form-group floating">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                placeholder=" "
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
               <label>Password</label>
-              <div className="input-with-icon">
-                <span className="input-icon">🔒</span>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
+
+              <Tooltip
+                text={showPassword ? 'Hide Password' : 'Show Password'}
+                position="top"
+                className="password-toggle-tooltip"
+              >
                 <button
                   type="button"
                   className="toggle-password"
@@ -107,17 +112,17 @@ const Login = () => {
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
-              </div>
+              </Tooltip>
             </div>
 
             <div className="form-footer">
               <Link to="/forgot-password">Forgot Password?</Link>
             </div>
-            
-            <div className="signup-link-container" style={{ textAlign: 'center', marginBottom: '1rem' }}>
-              <span style={{ color: '#666' }}>Don't have an account? </span>
-              <Link to="/signup" style={{ color: '#1a237e', fontWeight: '600', textDecoration: 'none' }}>Sign up</Link>
-            </div>
+
+            {/* <div className="signup-link-container">
+              <span>Don't have an account? </span>
+              <Link to="/signup">Sign up</Link>
+            </div> */}
 
             <button type="submit" className="signin-btn" disabled={isLoading}>
               {isLoading ? 'Signing In...' : 'Sign In'}

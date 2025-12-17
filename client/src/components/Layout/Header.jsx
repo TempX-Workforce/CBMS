@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../Notifications/NotificationBell';
+import Tooltip from '../Tooltip/Tooltip';
 import {
   Search,
   Menu,
@@ -28,9 +29,11 @@ const Header = ({ onMenuClick }) => {
       <div className="header-container">
         {/* Left Section: Mobile Menu & Search */}
         <div className="header-left">
-          <button className="mobile-menu-btn" onClick={onMenuClick}>
-            <Menu size={24} />
-          </button>
+          <Tooltip text="Toggle Menu" position="right">
+            <button className="mobile-menu-btn" onClick={onMenuClick}>
+              <Menu size={24} />
+            </button>
+          </Tooltip>
           
           <div className="header-search">
             <Search size={18} className="search-icon" />
@@ -44,9 +47,11 @@ const Header = ({ onMenuClick }) => {
 
         {/* Right Section: Actions & Profile */}
         <div className="header-right">
-          <button className="action-btn">
-            <Settings size={20} />
-          </button>
+          <Tooltip text="Settings" position="bottom">
+            <button className="action-btn">
+              <Settings size={20} />
+            </button>
+          </Tooltip>
           
           <NotificationBell />
 
