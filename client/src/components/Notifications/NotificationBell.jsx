@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { notificationAPI } from '../../services/api';
+import Tooltip from '../Tooltip/Tooltip';
 import { Bell, FileText, CheckCircle, XCircle, DollarSign, AlertTriangle, Clock, Megaphone, Trash2 } from 'lucide-react';
 import './NotificationBell.css';
 
@@ -120,15 +121,17 @@ const NotificationBell = () => {
 
   return (
     <div className="notification-bell">
-      <button
-        className="bell-button"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Bell size={20} />
-        {unreadCount > 0 && (
-          <span className="notification-badge">{unreadCount}</span>
-        )}
-      </button>
+      <Tooltip text="Notifications" position="bottom" className="bell-tooltip">
+        <button
+          className="bell-button"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          <Bell size={20} />
+          {unreadCount > 0 && (
+            <span className="notification-badge">{unreadCount}</span>
+          )}
+        </button>
+      </Tooltip>
 
       {isOpen && (
         <div className="notification-dropdown">

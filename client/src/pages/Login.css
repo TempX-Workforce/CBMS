@@ -7,7 +7,7 @@
   overflow: hidden;
 }
 
-/* Left Section - White Background + Illustration */
+/* Left Section */
 .login-left {
   flex: 1;
   background: #f8fafc;
@@ -15,7 +15,6 @@
   flex-direction: column;
   justify-content: center;
   padding: 4rem;
-  position: relative;
 }
 
 .illustration-container {
@@ -27,13 +26,11 @@
 
 .illustration-mockup {
   position: relative;
-  width: 100%;
   max-width: 500px;
   height: 400px;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Simple placeholder styling attempting to mimic the iso-illustration vibe */
 }
 
 .building-icon-large {
@@ -52,14 +49,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
   animation: float 4s ease-in-out infinite reverse;
 }
 
 @keyframes float {
   0% {
-    transform: translateY(0px);
+    transform: translateY(0);
   }
 
   50% {
@@ -67,10 +62,11 @@
   }
 
   100% {
-    transform: translateY(0px);
+    transform: translateY(0);
   }
 }
 
+/* Brand */
 .brand-section {
   margin-top: auto;
 }
@@ -79,22 +75,18 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1.5rem;
 }
 
 .brand-logo h1 {
   font-size: 2rem;
   font-weight: 800;
   color: #1a237e;
-  margin: 0;
 }
 
 .brand-section h2 {
   font-size: 2.5rem;
   font-weight: 800;
   color: #1a237e;
-  /* Using the Dark Blue Primary */
-  margin: 0 0 0.5rem 0;
 }
 
 .brand-section p {
@@ -102,18 +94,16 @@
   font-size: 1.1rem;
 }
 
-/* Right Section - Blue Background + Login Card */
+/* Right Section */
 .login-right {
   flex: 1;
   background: #1a237e;
-  /* Royal Blue */
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
 }
 
-/* decorative corner star */
 .login-right::after {
   content: '✦';
   position: absolute;
@@ -123,78 +113,94 @@
   font-size: 4rem;
 }
 
+/* Login Card */
 .login-box {
   background: white;
   padding: 2.5rem;
   border-radius: 1rem;
-  width: 100%;
   max-width: 400px;
-  /* Slightly tighter width */
+  width: 100%;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .login-header h2 {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.25rem;
 }
 
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  /* Compact spacing */
-}
+/* ========================= */
+/* 🔥 FLOATING INPUT SYSTEM */
+/* ========================= */
 
-.form-group label {
-  display: block;
-  font-size: 0.85rem;
-  color: #64748b;
-  margin-bottom: 0.25rem;
-}
-
-.input-with-icon {
+.form-group.floating {
   position: relative;
-  display: flex;
-  align-items: center;
+  margin-bottom: 1.25rem;
 }
 
-.input-icon {
-  position: absolute;
-  left: 1rem;
-  color: #94a3b8;
-  font-size: 1.2rem;
-  pointer-events: none;
-}
-
-.input-with-icon input {
+.form-group.floating input {
   width: 100%;
-  padding: 0.875rem 1rem 0.875rem 3.5rem !important;
-  /* Space for icon */
+  padding: 1.25rem 1rem 0.5rem;
+  font-size: 1rem;
   border: 1px solid #e2e8f0;
   border-radius: 0.5rem;
-  font-size: 1rem;
-  transition: all 0.2s;
+  background: transparent;
 }
 
-.input-with-icon input:focus {
+.form-group.floating input:focus {
   outline: none;
   border-color: #1a237e;
   box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
 }
 
-.toggle-password {
+/* Placeholder-like label */
+.form-group.floating label {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 0.95rem;
+  pointer-events: none;
+  transition: all 0.2s ease;
+
+  padding: 0 0.25rem;
+}
+
+/* 🔥 Animation trigger */
+.form-group.floating input:focus+label,
+.form-group.floating input:not(:placeholder-shown)+label {
+  top: 0;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: #1a237e;
+  background: white;
+  /* Ensure it covers the border */
+  z-index: 5;
+}
+
+/* Password eye wrapper (Tooltip) */
+.password-toggle-tooltip {
   position: absolute;
   right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+}
+
+/* Password eye button */
+.toggle-password {
   background: none;
   border: none;
   cursor: pointer;
   color: #94a3b8;
+  padding: 0;
   display: flex;
   align-items: center;
 }
 
+/* Footer links */
 .form-footer {
   text-align: right;
 }
@@ -207,26 +213,24 @@
 }
 
 .signin-btn {
+  margin-top: 1rem;
   background: #1a237e;
-  /* Royal Blue */
   color: white;
   border: none;
   padding: 1rem;
   border-radius: 0.5rem;
-  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
-  margin-top: 1rem;
+
+  width: 100%;
+  /* 🔥 makes it align with inputs */
+  display: block;
+  /* 🔥 removes inline spacing issues */
 }
+
 
 .signin-btn:hover {
   background: #0d47a1;
-}
-
-.signin-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
 }
 
 .support-link {
@@ -237,9 +241,9 @@
 .support-link a {
   color: #64748b;
   font-size: 0.875rem;
-  text-decoration: none;
 }
 
+/* Error */
 .error-alert {
   background: #fee2e2;
   color: #dc2626;
@@ -247,7 +251,6 @@
   border-radius: 0.5rem;
   font-size: 0.875rem;
   display: flex;
-  align-items: center;
   gap: 0.5rem;
 }
 
@@ -259,7 +262,6 @@
 
   .login-left {
     display: none;
-    /* Hide illustrative side on mobile for simplicity, or stack it */
   }
 
   .login-right {

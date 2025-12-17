@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import Tooltip from '../Tooltip/Tooltip';
 import {
   LayoutDashboard,
   LineChart,
@@ -22,12 +23,13 @@ import {
 } from 'lucide-react';
 import './Sidebar.css';
 
-const Sidebar = ({ isOpen, onClose }) => {
+const Sidebar = ({ isOpen, onClose, isExpanded, onToggleExpand }) => {
   const { user, logout } = useAuth();
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleSidebar = () => {
-    setIsExpanded(!isExpanded);
+    if (onToggleExpand) {
+      onToggleExpand();
+    }
   };
 
   const getNavigationItems = () => {
@@ -94,11 +96,13 @@ const Sidebar = ({ isOpen, onClose }) => {
 
       <aside className={`sidebar ${isOpen ? 'open' : ''} ${isExpanded ? 'expanded' : ''}`}>
         <div className="sidebar-header">
-           <button className="sidebar-toggle-btn" onClick={toggleSidebar} title="Toggle Sidebar">
-             <div className="sidebar-logo-icon">
-               {isExpanded ? <Menu size={24} color="white" /> : <GraduationCap size={24} color="white" />}
-             </div>
-           </button>
+           <Tooltip text={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"} position="right">
+             <button className="sidebar-toggle-btn" onClick={toggleSidebar}>
+               <div className="sidebar-logo-icon">
+                 {isExpanded ? <Menu size={24} color="white" /> : <GraduationCap size={24} color="white" />}
+               </div>
+             </button>
+           </Tooltip>
            
            <div className="sidebar-logo-text-container">
               <div className="sidebar-logo-text">CBMS</div>
@@ -108,17 +112,23 @@ const Sidebar = ({ isOpen, onClose }) => {
 
         <nav className="sidebar-nav">
           {getNavigationItems().map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => 
-                `nav-item ${isActive ? 'active' : ''}`
-              }
-              onClick={() => window.innerWidth < 1024 && onClose()}
+            <Tooltip 
+              key={item.path} 
+              text={!isExpanded ? item.label : ''} 
+              position="right"
+              className="w-full"
             >
-              <span className="nav-item-icon">{item.icon}</span>
-              <span className="nav-item-label">{item.label}</span>
-            </NavLink>
+              <NavLink
+                to={item.path}
+                className={({ isActive }) => 
+                  `nav-item ${isActive ? 'active' : ''}`
+                }
+                onClick={() => window.innerWidth < 1024 && onClose()}
+              >
+                <span className="nav-item-icon">{item.icon}</span>
+                <span className="nav-item-label">{item.label}</span>
+              </NavLink>
+            </Tooltip>
           ))}
         </nav>
       </aside>

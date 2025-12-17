@@ -1,0 +1,109 @@
+.tooltip-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tooltip-text {
+    visibility: hidden;
+    width: max-content;
+    max-width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 10px;
+    /* position, top, left, z-index managed by JS component for Portal */
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+    pointer-events: none;
+    white-space: normal;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-text.visible {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Arrows - tricky with Portal/Fixed, but can simulate if needed. 
+   For now, we will use a simpler localized arrow if not portal, 
+   but for Portal we might skip the arrow or re-implement it. 
+   Below styles apply if NOT using Portal (fallback).
+*/
+
+.tooltip-text.static-pos {
+    position: absolute;
+    z-index: 1000;
+}
+
+/* Arrow styles for static (non-portal) usage */
+.tooltip-top.static-pos {
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.tooltip-top.static-pos::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.tooltip-bottom.static-pos {
+    top: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.tooltip-bottom.static-pos::after {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent #333 transparent;
+}
+
+.tooltip-left.static-pos {
+    top: 50%;
+    right: 110%;
+    transform: translateY(-50%);
+}
+
+.tooltip-left.static-pos::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    margin-top: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent transparent #333;
+}
+
+.tooltip-right.static-pos {
+    top: 50%;
+    left: 110%;
+    transform: translateY(-50%);
+}
+
+.tooltip-right.static-pos::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    margin-top: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent #333 transparent transparent;
+}

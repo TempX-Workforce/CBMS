@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { departmentsAPI } from '../services/api';
-import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import Tooltip from '../components/Tooltip/Tooltip';
+import PageHeader from '../components/Common/PageHeader';
+import StatCard from '../components/Common/StatCard';
+import { Plus, Pencil, Trash2, X, Building, Users as UsersIcon } from 'lucide-react';
 import './Departments.css';
 
 const Departments = () => {
@@ -119,12 +122,14 @@ const Departments = () => {
 
   return (
     <div className="departments-container">
-      <div className="departments-header">
-        <h1>Departments Management</h1>
+      <PageHeader 
+        title="Departments Management" 
+        subtitle="Manage academic and administrative departments"
+      >
         <button className="btn btn-primary" onClick={openModal}>
           <Plus size={18} /> Add Department
         </button>
-      </div>
+      </PageHeader>
 
       {error && (
         <div className="error-message">
@@ -134,22 +139,30 @@ const Departments = () => {
 
       {stats && (
         <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-number">{stats.totalDepartments}</div>
-            <div className="stat-label">Total Departments</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.activeDepartments}</div>
-            <div className="stat-label">Active Departments</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.departmentsWithHOD}</div>
-            <div className="stat-label">With HOD</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.departmentsWithoutHOD}</div>
-            <div className="stat-label">Without HOD</div>
-          </div>
+          <StatCard 
+            title="Total Departments" 
+            value={stats.totalDepartments} 
+            icon={<Building size={24} />} 
+            color="var(--primary)"
+          />
+          <StatCard 
+            title="Active Departments" 
+            value={stats.activeDepartments} 
+            icon={<Building size={24} />}
+            color="var(--success)"
+          />
+          <StatCard 
+            title="With HOD" 
+            value={stats.departmentsWithHOD} 
+            icon={<UsersIcon size={24} />}
+            color="var(--info)"
+          />
+          <StatCard 
+            title="Without HOD" 
+            value={stats.departmentsWithoutHOD} 
+            icon={<UsersIcon size={24} />}
+            color="var(--warning)"
+          />
         </div>
       )}
 
@@ -190,18 +203,22 @@ const Departments = () => {
                 </td>
                 <td>
                   <div className="action-buttons">
-                    <button
-                      className="btn btn-sm btn-secondary"
-                      onClick={() => handleEdit(dept)}
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => handleDelete(dept._id)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <Tooltip text="Edit Department" position="top">
+                      <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => handleEdit(dept)}
+                      >
+                        <Pencil size={16} />
+                      </button>
+                    </Tooltip>
+                    <Tooltip text="Delete Department" position="top">
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleDelete(dept._id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </Tooltip>
                   </div>
                 </td>
               </tr>

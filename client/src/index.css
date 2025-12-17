@@ -364,18 +364,60 @@ a:hover {
 /* ============================================
    Cards
    ============================================ */
-.card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-light);
+/* ============================================
+   Cards
+   ============================================ */
+.card,
+.chart-card,
+.metric-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  border: var(--glass-border);
   border-radius: var(--radius-xl);
   padding: var(--space-lg);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition-base);
+  box-shadow: var(--glass-shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.card:hover {
-  box-shadow: var(--shadow-md);
+.card:hover,
+.chart-card:hover,
+.metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--glass-shadow-lg);
 }
+
+.metric-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.metric-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.metric-content h3 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.metric-content p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 
 /* ============================================
    Utilities
@@ -398,6 +440,10 @@ a:hover {
 
 .mb-md {
   margin-bottom: var(--space-md);
+}
+
+.w-full {
+  width: 100%;
 }
 
 /* ============================================

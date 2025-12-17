@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { budgetHeadsAPI } from '../services/api';
+import Tooltip from '../components/Tooltip/Tooltip';
+import PageHeader from '../components/Common/PageHeader';
+import StatCard from '../components/Common/StatCard';
 import { Plus, Pencil, Trash2, X, DollarSign } from 'lucide-react';
 import './BudgetHeads.css';
 
@@ -166,12 +169,14 @@ const BudgetHeads = () => {
 
   return (
     <div className="budget-heads-container">
-      <div className="budget-heads-header">
-        <h1>Budget Heads Management</h1>
+      <PageHeader 
+        title="Budget Heads Management" 
+        subtitle="Manage and allocate budget categories"
+      >
         <button className="btn btn-primary" onClick={openModal}>
           <Plus size={18} /> Add Budget Head
         </button>
-      </div>
+      </PageHeader>
 
       {error && (
         <div className="error-message">
@@ -181,22 +186,30 @@ const BudgetHeads = () => {
 
       {stats && (
         <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-number">{stats.totalBudgetHeads}</div>
-            <div className="stat-label">Total Budget Heads</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.activeBudgetHeads}</div>
-            <div className="stat-label">Active Budget Heads</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.inactiveBudgetHeads}</div>
-            <div className="stat-label">Inactive Budget Heads</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{Object.keys(stats.categoryStats).length}</div>
-            <div className="stat-label">Categories</div>
-          </div>
+          <StatCard 
+            title="Total Budget Heads" 
+            value={stats.totalBudgetHeads} 
+            icon={<DollarSign size={24} />} 
+            color="var(--primary)"
+          />
+          <StatCard 
+            title="Active Budget Heads" 
+            value={stats.activeBudgetHeads} 
+            icon={<DollarSign size={24} />} 
+            color="var(--success)"
+          />
+          <StatCard 
+            title="Inactive Budget Heads" 
+            value={stats.inactiveBudgetHeads} 
+            icon={<DollarSign size={24} />} 
+            color="var(--warning)" // or error/gray
+          />
+          <StatCard 
+            title="Categories" 
+            value={Object.keys(stats.categoryStats).length} 
+            icon={<DollarSign size={24} />} 
+            color="var(--info)"
+          />
         </div>
       )}
 
@@ -276,18 +289,22 @@ const BudgetHeads = () => {
             </div>
 
             <div className="card-actions">
-              <button
-                className="btn btn-sm btn-secondary"
-                onClick={() => handleEdit(head)}
-              >
-                <Pencil size={16} /> Edit
-              </button>
-              <button
-                className="btn btn-sm btn-danger"
-                onClick={() => handleDelete(head._id)}
-              >
-                <Trash2 size={16} /> Delete
-              </button>
+              <Tooltip text="Edit Budget Head" position="top">
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => handleEdit(head)}
+                >
+                  <Pencil size={16} /> Edit
+                </button>
+              </Tooltip>
+              <Tooltip text="Delete Budget Head" position="top">
+                <button
+                  className="btn btn-sm btn-danger"
+                  onClick={() => handleDelete(head._id)}
+                >
+                  <Trash2 size={16} /> Delete
+                </button>
+              </Tooltip>
             </div>
           </div>
         ))}

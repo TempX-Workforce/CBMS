@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getUsers,
+  createUser,
   getUserById,
   updateUser,
   deleteUser,
@@ -17,6 +18,7 @@ router.use(verifyToken);
 router.use(authorize('admin'));
 
 router.get('/', getUsers);
+router.post('/', createUser);
 router.get('/stats', getUserStats);
 router.get('/role/:role', getUsersByRole);
 router.get('/:id', getUserById);
