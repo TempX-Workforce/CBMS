@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // Create axios instance with base configuration
-const baseURL = process.env.NODE_ENV === 'production'
-  ? (process.env.VITE_API_URL || 'https://cbms-mjcv.onrender.com/api')
+const baseURL = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'https://localhost:5000/api')
   : '/api';
 
 const api = axios.create({
