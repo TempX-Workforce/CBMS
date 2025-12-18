@@ -47,12 +47,6 @@ const Header = ({ onMenuClick }) => {
 
         {/* Right Section: Actions & Profile */}
         <div className="header-right">
-          <Tooltip text="Settings" position="bottom">
-            <button className="action-btn">
-              <Settings size={20} />
-            </button>
-          </Tooltip>
-          
           <NotificationBell />
 
           <div className="user-dropdown">

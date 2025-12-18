@@ -54,7 +54,7 @@ const getUsers = async (req, res) => {
 // @access  Private/Admin
 const createUser = async (req, res) => {
   try {
-    const { name, email, password, role, department, isActive } = req.body;
+    const { name, email, password, role, department, isActive, permissions } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -83,7 +83,8 @@ const createUser = async (req, res) => {
       password,
       role,
       department: ['department', 'hod'].includes(role) ? department : undefined,
-      isActive: isActive !== undefined ? isActive : true
+      isActive: isActive !== undefined ? isActive : true,
+      permissions: permissions || {}
     });
 
     res.status(201).json({
@@ -145,7 +146,7 @@ const getUserById = async (req, res) => {
 // @access  Private/Admin
 const updateUser = async (req, res) => {
   try {
-    const { name, email, role, department, isActive } = req.body;
+    const { name, email, role, department, isActive, permissions } = req.body;
     const userId = req.params.id;
 
     // Check if user exists
@@ -187,6 +188,7 @@ const updateUser = async (req, res) => {
       updateData.department = ['department', 'hod'].includes(role) ? department : undefined;
     }
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (permissions) updateData.permissions = permissions;
 
     const user = await User.findByIdAndUpdate(
       userId,
