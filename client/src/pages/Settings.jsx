@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { settingsAPI } from '../services/api';
+import PageHeader from '../components/Common/PageHeader';
+import ContentCard from '../components/Common/ContentCard';
 import { Settings as SettingsIcon, DollarSign, Bell, Shield, Server, RotateCcw, Save } from 'lucide-react';
 import './Settings.css';
 
@@ -29,8 +31,8 @@ const Settings = () => {
     try {
       setLoading(true);
       const response = await settingsAPI.getSettings();
-      setSettings(response.data.data.settings);
-      setFormData(response.data.data.settings);
+      setSettings(response.data.data.settings || {});
+      setFormData(response.data.data.settings || {});
       setError(null);
     } catch (err) {
       setError('Failed to fetch settings');
@@ -115,10 +117,10 @@ const Settings = () => {
 
   return (
     <div className="settings-container">
-      <div className="settings-header">
-        <h1>System Settings</h1>
-        <p>Manage your CBMS system configuration and preferences</p>
-      </div>
+      <PageHeader 
+        title="System Settings" 
+        subtitle="Manage your CBMS system configuration and preferences"
+      />
 
       {error && (
         <div className="error-message">
@@ -149,462 +151,485 @@ const Settings = () => {
         </div>
 
         <div className="settings-main">
-          <div className="settings-panel">
-            <div className="panel-header">
-              <h2>{tabs.find(tab => tab.id === activeTab).label} Settings</h2>
-              <button className="btn btn-secondary" onClick={handleReset}>
-                <RotateCcw size={16} /> Reset to Default
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="settings-form">
-              {activeTab === 'general' && (
-                <div className="form-section">
-                  <div className="form-group">
-                    <label htmlFor="collegeName">College Name</label>
-                    <input
-                      type="text"
-                      id="collegeName"
-                      name="collegeName"
-                      value={formData.general?.collegeName || ''}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="collegeCode">College Code</label>
-                    <input
-                      type="text"
-                      id="collegeCode"
-                      name="collegeCode"
-                      value={formData.general?.collegeCode || ''}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="academicYear">Academic Year</label>
-                      <input
-                        type="text"
-                        id="academicYear"
-                        name="academicYear"
-                        value={formData.general?.academicYear || ''}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="financialYear">Financial Year</label>
-                      <input
-                        type="text"
-                        id="financialYear"
-                        name="financialYear"
-                        value={formData.general?.financialYear || ''}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="currency">Currency</label>
-                      <select
-                        id="currency"
-                        name="currency"
-                        value={formData.general?.currency || ''}
-                        onChange={handleInputChange}
-                      >
-                        <option value="INR">INR (₹)</option>
-                        <option value="USD">USD ($)</option>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="GBP">GBP (£)</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="timezone">Timezone</label>
-                      <select
-                        id="timezone"
-                        name="timezone"
-                        value={formData.general?.timezone || ''}
-                        onChange={handleInputChange}
-                      >
-                        <option value="Asia/Kolkata">Asia/Kolkata</option>
-                        <option value="UTC">UTC</option>
-                        <option value="America/New_York">America/New_York</option>
-                        <option value="Europe/London">Europe/London</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'budget' && (
-                <div className="form-section">
-                  <div className="form-group">
-                    <label htmlFor="defaultAllocationPeriod">Default Allocation Period</label>
-                    <select
-                      id="defaultAllocationPeriod"
-                      name="defaultAllocationPeriod"
-                      value={formData.budget?.defaultAllocationPeriod || ''}
-                      onChange={handleInputChange}
-                    >
-                      <option value="monthly">Monthly</option>
-                      <option value="quarterly">Quarterly</option>
-                      <option value="yearly">Yearly</option>
-                    </select>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="maxAllocationAmount">Max Allocation Amount</label>
-                      <input
-                        type="number"
-                        id="maxAllocationAmount"
-                        name="maxAllocationAmount"
-                        value={formData.budget?.maxAllocationAmount || ''}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="minAllocationAmount">Min Allocation Amount</label>
-                      <input
-                        type="number"
-                        id="minAllocationAmount"
-                        name="minAllocationAmount"
-                        value={formData.budget?.minAllocationAmount || ''}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="approvalRequiredAmount">Approval Required Amount</label>
-                      <input
-                        type="number"
-                        id="approvalRequiredAmount"
-                        name="approvalRequiredAmount"
-                        value={formData.budget?.approvalRequiredAmount || ''}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="autoApprovalAmount">Auto Approval Amount</label>
-                      <input
-                        type="number"
-                        id="autoApprovalAmount"
-                        name="autoApprovalAmount"
-                        value={formData.budget?.autoApprovalAmount || ''}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="budgetCarryForward"
-                        checked={formData.budget?.budgetCarryForward || false}
-                        onChange={handleInputChange}
-                      />
-                      Allow Budget Carry Forward
-                    </label>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="budgetCarryForwardPercentage">Carry Forward Percentage</label>
-                    <input
-                      type="number"
-                      id="budgetCarryForwardPercentage"
-                      name="budgetCarryForwardPercentage"
-                      value={formData.budget?.budgetCarryForwardPercentage || ''}
-                      onChange={handleInputChange}
-                      min="0"
-                      max="100"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'notifications' && (
-                <div className="form-section">
-                  <h3 className="section-title">Email Notifications</h3>
-
-                  <div className="form-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="emailNotifications"
-                        checked={formData.notifications?.emailNotifications || false}
-                        onChange={handleInputChange}
-                      />
-                      Enable Email Notifications
-                    </label>
-                    <small className="help-text">Receive email notifications for important events like submissions, approvals, and rejections</small>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="smsNotifications"
-                        checked={formData.notifications?.smsNotifications || false}
-                        onChange={handleInputChange}
-                      />
-                      Enable SMS Notifications
-                    </label>
-                    <small className="help-text">Get SMS alerts for critical actions</small>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="pushNotifications"
-                        checked={formData.notifications?.pushNotifications || false}
-                        onChange={handleInputChange}
-                      />
-                      Enable Push Notifications
-                    </label>
-                    <small className="help-text">Receive browser push notifications when logged in</small>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="notificationFrequency">Notification Frequency</label>
-                    <select
-                      id="notificationFrequency"
-                      name="notificationFrequency"
-                      value={formData.notifications?.notificationFrequency || ''}
-                      onChange={handleInputChange}
-                    >
-                      <option value="immediate">Immediate</option>
-                      <option value="hourly">Hourly Digest</option>
-                      <option value="daily">Daily Digest</option>
-                      <option value="weekly">Weekly Digest</option>
-                    </select>
-                    <small className="help-text">How often you want to receive notification emails</small>
-                  </div>
-
-                  <h3 className="section-title">Auto-Reminder Settings</h3>
-                  <div className="info-box">
-                    <p>Configure automatic reminder emails for pending approvals. The system checks daily at 9:00 AM and sends reminders to approvers with pending requests older than the configured threshold.</p>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="reminderDays">Pending Approval Reminder Threshold (Days)</label>
-                      <input
-                        type="number"
-                        id="reminderDays"
-                        name="reminderDays"
-                        value={formData.notifications?.reminderDays || '5'}
-                        onChange={handleInputChange}
-                        min="1"
-                        max="30"
-                      />
-                      <small className="help-text">Send reminder emails for approvals pending longer than this many days (default: 5 days)</small>
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="escalationDays">Escalation Threshold (Days)</label>
-                      <input
-                        type="number"
-                        id="escalationDays"
-                        name="escalationDays"
-                        value={formData.notifications?.escalationDays || '10'}
-                        onChange={handleInputChange}
-                        min="1"
-                        max="30"
-                      />
-                      <small className="help-text">Number of days before escalating to higher authorities (default: 10 days)</small>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'security' && (
-                <div className="form-section">
-                  <div className="form-group">
-                    <label htmlFor="passwordMinLength">Minimum Password Length</label>
-                    <input
-                      type="number"
-                      id="passwordMinLength"
-                      name="passwordMinLength"
-                      value={formData.security?.passwordMinLength || ''}
-                      onChange={handleInputChange}
-                      min="6"
-                      max="20"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="passwordRequireSpecialChars"
-                        checked={formData.security?.passwordRequireSpecialChars || false}
-                        onChange={handleInputChange}
-                      />
-                      Require Special Characters
-                    </label>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="passwordRequireNumbers"
-                        checked={formData.security?.passwordRequireNumbers || false}
-                        onChange={handleInputChange}
-                      />
-                      Require Numbers
-                    </label>
-                  </div>
-
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="sessionTimeout">Session Timeout (minutes)</label>
-                      <input
-                        type="number"
-                        id="sessionTimeout"
-                        name="sessionTimeout"
-                        value={formData.security?.sessionTimeout || ''}
-                        onChange={handleInputChange}
-                        min="5"
-                        max="480"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor="maxLoginAttempts">Max Login Attempts</label>
-                      <input
-                        type="number"
-                        id="maxLoginAttempts"
-                        name="maxLoginAttempts"
-                        value={formData.security?.maxLoginAttempts || ''}
-                        onChange={handleInputChange}
-                        min="3"
-                        max="10"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="lockoutDuration">Lockout Duration (minutes)</label>
-                    <input
-                      type="number"
-                      id="lockoutDuration"
-                      name="lockoutDuration"
-                      value={formData.security?.lockoutDuration || ''}
-                      onChange={handleInputChange}
-                      min="5"
-                      max="60"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="twoFactorAuth"
-                        checked={formData.security?.twoFactorAuth || false}
-                        onChange={handleInputChange}
-                      />
-                      Enable Two-Factor Authentication
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'system' && (
-                <div className="form-section">
-                  <div className="form-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="maintenanceMode"
-                        checked={formData.system?.maintenanceMode || false}
-                        onChange={handleInputChange}
-                      />
-                      Enable Maintenance Mode
-                    </label>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="maintenanceMessage">Maintenance Message</label>
-                    <textarea
-                      id="maintenanceMessage"
-                      name="maintenanceMessage"
-                      value={formData.system?.maintenanceMessage || ''}
-                      onChange={handleInputChange}
-                      rows="3"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="maxFileUploadSize">Max File Upload Size (bytes)</label>
-                    <input
-                      type="number"
-                      id="maxFileUploadSize"
-                      name="maxFileUploadSize"
-                      value={formData.system?.maxFileUploadSize || ''}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="auditLogRetention">Audit Log Retention (days)</label>
-                    <input
-                      type="number"
-                      id="auditLogRetention"
-                      name="auditLogRetention"
-                      value={formData.system?.auditLogRetention || ''}
-                      onChange={handleInputChange}
-                      min="30"
-                      max="3650"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="backupFrequency">Backup Frequency</label>
-                    <select
-                      id="backupFrequency"
-                      name="backupFrequency"
-                      value={formData.system?.backupFrequency || ''}
-                      onChange={handleInputChange}
-                    >
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        name="autoBackup"
-                        checked={formData.system?.autoBackup || false}
-                        onChange={handleInputChange}
-                      />
-                      Enable Auto Backup
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              <div className="form-actions">
-                <button type="submit" className="btn btn-primary">
-                  <Save size={16} /> Save Settings
+            <div className="settings-panel">
+              <div className="panel-header">
+                <h2>{tabs.find(tab => tab.id === activeTab).label} Settings</h2>
+                <button className="btn btn-secondary" onClick={handleReset}>
+                  <RotateCcw size={16} /> Reset to Default
                 </button>
               </div>
-            </form>
-          </div>
+
+              <form onSubmit={handleSubmit} className="settings-form">
+                {activeTab === 'general' && (
+                  <div className="form-section">
+                    <div className="form-group">
+                      <label htmlFor="collegeName">College Name</label>
+                      <input
+                        type="text"
+                        id="collegeName"
+                        name="collegeName"
+                        value={formData?.general?.collegeName || ''}
+                        onChange={handleInputChange}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="collegeCode">College Code</label>
+                      <input
+                        type="text"
+                        id="collegeCode"
+                        name="collegeCode"
+                        value={formData?.general?.collegeCode || ''}
+                        onChange={handleInputChange}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="academicYear">Academic Year</label>
+                        <input
+                          type="text"
+                          id="academicYear"
+                          name="academicYear"
+                          value={formData?.general?.academicYear || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="financialYear">Financial Year</label>
+                        <input
+                          type="text"
+                          id="financialYear"
+                          name="financialYear"
+                          value={formData?.general?.financialYear || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="currency">Currency</label>
+                        <select
+                          id="currency"
+                          name="currency"
+                          value={formData?.general?.currency || ''}
+                          onChange={handleInputChange}
+                          className="form-select"
+                        >
+                          <option value="INR">INR (₹)</option>
+                          <option value="USD">USD ($)</option>
+                          <option value="EUR">EUR (€)</option>
+                          <option value="GBP">GBP (£)</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="timezone">Timezone</label>
+                        <select
+                          id="timezone"
+                          name="timezone"
+                          value={formData?.general?.timezone || ''}
+                          onChange={handleInputChange}
+                          className="form-select"
+                        >
+                          <option value="Asia/Kolkata">Asia/Kolkata</option>
+                          <option value="UTC">UTC</option>
+                          <option value="America/New_York">America/New_York</option>
+                          <option value="Europe/London">Europe/London</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'budget' && (
+                  <div className="form-section">
+                    <div className="form-group">
+                      <label htmlFor="defaultAllocationPeriod">Default Allocation Period</label>
+                      <select
+                        id="defaultAllocationPeriod"
+                        name="defaultAllocationPeriod"
+                        value={formData.budget?.defaultAllocationPeriod || ''}
+                        onChange={handleInputChange}
+                        className="form-select"
+                      >
+                        <option value="monthly">Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="maxAllocationAmount">Max Allocation Amount</label>
+                        <input
+                          type="number"
+                          id="maxAllocationAmount"
+                          name="maxAllocationAmount"
+                          value={formData.budget?.maxAllocationAmount || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="minAllocationAmount">Min Allocation Amount</label>
+                        <input
+                          type="number"
+                          id="minAllocationAmount"
+                          name="minAllocationAmount"
+                          value={formData.budget?.minAllocationAmount || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="approvalRequiredAmount">Approval Required Amount</label>
+                        <input
+                          type="number"
+                          id="approvalRequiredAmount"
+                          name="approvalRequiredAmount"
+                          value={formData.budget?.approvalRequiredAmount || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="autoApprovalAmount">Auto Approval Amount</label>
+                        <input
+                          type="number"
+                          id="autoApprovalAmount"
+                          name="autoApprovalAmount"
+                          value={formData.budget?.autoApprovalAmount || ''}
+                          onChange={handleInputChange}
+                          className="form-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          name="budgetCarryForward"
+                          checked={formData.budget?.budgetCarryForward || false}
+                          onChange={handleInputChange}
+                        />
+                        Allow Budget Carry Forward
+                      </label>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="budgetCarryForwardPercentage">Carry Forward Percentage</label>
+                      <input
+                        type="number"
+                        id="budgetCarryForwardPercentage"
+                        name="budgetCarryForwardPercentage"
+                        value={formData.budget?.budgetCarryForwardPercentage || ''}
+                        onChange={handleInputChange}
+                        min="0"
+                        max="100"
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'notifications' && (
+                  <div className="form-section">
+                    <h3 className="section-title">Email Notifications</h3>
+
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          name="emailNotifications"
+                          checked={formData.notifications?.emailNotifications || false}
+                          onChange={handleInputChange}
+                        />
+                        Enable Email Notifications
+                      </label>
+                      <small className="help-text">Receive email notifications for important events like submissions, approvals, and rejections</small>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          name="smsNotifications"
+                          checked={formData.notifications?.smsNotifications || false}
+                          onChange={handleInputChange}
+                        />
+                        Enable SMS Notifications
+                      </label>
+                      <small className="help-text">Get SMS alerts for critical actions</small>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          name="pushNotifications"
+                          checked={formData.notifications?.pushNotifications || false}
+                          onChange={handleInputChange}
+                        />
+                        Enable Push Notifications
+                      </label>
+                      <small className="help-text">Receive browser push notifications when logged in</small>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="notificationFrequency">Notification Frequency</label>
+                      <select
+                        id="notificationFrequency"
+                        name="notificationFrequency"
+                        value={formData.notifications?.notificationFrequency || ''}
+                        onChange={handleInputChange}
+                        className="form-select"
+                      >
+                        <option value="immediate">Immediate</option>
+                        <option value="hourly">Hourly Digest</option>
+                        <option value="daily">Daily Digest</option>
+                        <option value="weekly">Weekly Digest</option>
+                      </select>
+                      <small className="help-text">How often you want to receive notification emails</small>
+                    </div>
+
+                    <h3 className="section-title">Auto-Reminder Settings</h3>
+                    <div className="info-box">
+                      <p>configure automatic reminder emails for pending approvals. The system checks daily at 9:00 AM and sends reminders to approvers with pending requests older than the configured threshold.</p>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="reminderDays">Pending Approval Reminder Threshold (Days)</label>
+                        <input
+                          type="number"
+                          id="reminderDays"
+                          name="reminderDays"
+                          value={formData.notifications?.reminderDays || '5'}
+                          onChange={handleInputChange}
+                          min="1"
+                          max="30"
+                          className="form-input"
+                        />
+                        <small className="help-text">Send reminder emails for approvals pending longer than this many days (default: 5 days)</small>
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="escalationDays">Escalation Threshold (Days)</label>
+                        <input
+                          type="number"
+                          id="escalationDays"
+                          name="escalationDays"
+                          value={formData.notifications?.escalationDays || '10'}
+                          onChange={handleInputChange}
+                          min="1"
+                          max="30"
+                          className="form-input"
+                        />
+                        <small className="help-text">Number of days before escalating to higher authorities (default: 10 days)</small>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'security' && (
+                  <div className="form-section">
+                    <div className="form-group">
+                      <label htmlFor="passwordMinLength">Minimum Password Length</label>
+                      <input
+                        type="number"
+                        id="passwordMinLength"
+                        name="passwordMinLength"
+                        value={formData.security?.passwordMinLength || ''}
+                        onChange={handleInputChange}
+                        min="6"
+                        max="20"
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          name="passwordRequireSpecialChars"
+                          checked={formData.security?.passwordRequireSpecialChars || false}
+                          onChange={handleInputChange}
+                        />
+                        Require Special Characters
+                      </label>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          name="passwordRequireNumbers"
+                          checked={formData.security?.passwordRequireNumbers || false}
+                          onChange={handleInputChange}
+                        />
+                        Require Numbers
+                      </label>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="sessionTimeout">Session Timeout (minutes)</label>
+                        <input
+                          type="number"
+                          id="sessionTimeout"
+                          name="sessionTimeout"
+                          value={formData.security?.sessionTimeout || ''}
+                          onChange={handleInputChange}
+                          min="5"
+                          max="480"
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="maxLoginAttempts">Max Login Attempts</label>
+                        <input
+                          type="number"
+                          id="maxLoginAttempts"
+                          name="maxLoginAttempts"
+                          value={formData.security?.maxLoginAttempts || ''}
+                          onChange={handleInputChange}
+                          min="3"
+                          max="10"
+                          className="form-input"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="lockoutDuration">Lockout Duration (minutes)</label>
+                      <input
+                        type="number"
+                        id="lockoutDuration"
+                        name="lockoutDuration"
+                        value={formData.security?.lockoutDuration || ''}
+                        onChange={handleInputChange}
+                        min="5"
+                        max="60"
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          name="twoFactorAuth"
+                          checked={formData.security?.twoFactorAuth || false}
+                          onChange={handleInputChange}
+                        />
+                        Enable Two-Factor Authentication
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'system' && (
+                  <div className="form-section">
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          name="maintenanceMode"
+                          checked={formData.system?.maintenanceMode || false}
+                          onChange={handleInputChange}
+                        />
+                        Enable Maintenance Mode
+                      </label>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="maintenanceMessage">Maintenance Message</label>
+                      <textarea
+                        id="maintenanceMessage"
+                        name="maintenanceMessage"
+                        value={formData.system?.maintenanceMessage || ''}
+                        onChange={handleInputChange}
+                        rows="3"
+                        className="form-textarea"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="maxFileUploadSize">Max File Upload Size (bytes)</label>
+                      <input
+                        type="number"
+                        id="maxFileUploadSize"
+                        name="maxFileUploadSize"
+                        value={formData.system?.maxFileUploadSize || ''}
+                        onChange={handleInputChange}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="auditLogRetention">Audit Log Retention (days)</label>
+                      <input
+                        type="number"
+                        id="auditLogRetention"
+                        name="auditLogRetention"
+                        value={formData.system?.auditLogRetention || ''}
+                        onChange={handleInputChange}
+                        min="30"
+                        max="3650"
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="backupFrequency">Backup Frequency</label>
+                      <select
+                        id="backupFrequency"
+                        name="backupFrequency"
+                        value={formData.system?.backupFrequency || ''}
+                        onChange={handleInputChange}
+                        className="form-select"
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          name="autoBackup"
+                          checked={formData.system?.autoBackup || false}
+                          onChange={handleInputChange}
+                        />
+                        Enable Auto Backup
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                <div className="form-actions">
+                  <button type="submit" className="btn btn-primary">
+                    <Save size={16} /> Save Settings
+                  </button>
+                </div>
+              </form>
+            </div>
 
           {systemInfo && (
             <div className="system-info-panel">

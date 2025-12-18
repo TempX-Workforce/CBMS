@@ -16,7 +16,7 @@
         "no-unused-vars": [
             "warn",
             {
-                "argsIgnorePattern": "^_"
+                "argorePattern": "^_"
             }
         ]
     }

@@ -14,8 +14,8 @@
   backdrop-filter: var(--glass-backdrop);
   border: var(--glass-border);
   border-radius: var(--radius-xl);
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -23,8 +23,8 @@
 }
 
 .header-content h1 {
-  margin: 0 0 0.5rem 0;
-  font-size: 2rem;
+  margin: 0 0 0.25rem 0;
+  font-size: 1.75rem;
   font-weight: 800;
   color: var(--text-primary);
 }
@@ -35,11 +35,24 @@
   color: var(--text-secondary);
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.time-range-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .time-range-selector select {
   padding: 0.5rem 1rem;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-medium);
   background: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
 }
 
 .refresh-btn {

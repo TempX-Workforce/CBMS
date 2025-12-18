@@ -89,6 +89,7 @@ const Signup = () => {
   };
 
   const roleOptions = [
+    { value: 'admin', label: 'Admin' },
     { value: 'department', label: 'Department User' },
     { value: 'hod', label: 'Head of Department' },
     { value: 'office', label: 'Finance Office' },

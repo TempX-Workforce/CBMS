@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { usersAPI, departmentsAPI } from '../services/api';
+import Tooltip from '../components/Tooltip/Tooltip';
+import PageHeader from '../components/Common/PageHeader';
+import StatCard from '../components/Common/StatCard';
 import { UserPlus, Pencil, Trash2, X } from 'lucide-react';
 import './Users.css';
 
@@ -95,19 +98,50 @@ const Users = () => {
     }));
   };
 
+  /* 
+   * Updated formData logic to include password fields 
+   */
+  const handleAddUser = () => {
+    setEditingUser(null);
+    setFormData({
+      name: '',
+      email: '',
+      role: '',
+      department: '',
+      password: '',
+      confirmPassword: '',
+      isActive: true
+    });
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
+
+    // Basic Validation
+    if (!editingUser) {
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        return;
+      }
+    }
+
     try {
-      await usersAPI.updateUser(editingUser._id, formData);
+      if (editingUser) {
+        await usersAPI.updateUser(editingUser._id, formData);
+      } else {
+        await usersAPI.createUser(formData);
+      }
 
       setShowModal(false);
       setEditingUser(null);
-      setFormData({ name: '', email: '', role: '', department: '', isActive: true });
+      setFormData({ name: '', email: '', role: '', department: '', password: '', confirmPassword: '', isActive: true });
       fetchUsers();
       fetchStats();
     } catch (err) {
-      setError('Failed to update user');
-      console.error('Error updating user:', err);
+      setError(err.response?.data?.message || 'Failed to save user');
+      console.error('Error saving user:', err);
     }
   };
 
@@ -118,6 +152,8 @@ const Users = () => {
       email: user.email,
       role: user.role,
       department: user.department || '',
+      password: '', // Not editing password here
+      confirmPassword: '',
       isActive: user.isActive
     });
     setShowModal(true);
@@ -139,7 +175,8 @@ const Users = () => {
   const closeModal = () => {
     setShowModal(false);
     setEditingUser(null);
-    setFormData({ name: '', email: '', role: '', department: '', isActive: true });
+    setFormData({ name: '', email: '', role: '', department: '', password: '', confirmPassword: '', isActive: true });
+    setError(null);
   };
 
   const getRoleLabel = (role) => {
@@ -170,14 +207,16 @@ const Users = () => {
 
   return (
     <div className="users-container">
-      <div className="users-header">
-        <h1>Users Management</h1>
+      <PageHeader 
+        title="Users Management" 
+        subtitle="Manage system users and access roles"
+      >
         <div className="header-actions">
-          <button className="btn btn-secondary" onClick={() => window.location.href = '/signup'}>
+          <button className="btn btn-secondary" onClick={handleAddUser}>
             <UserPlus size={18} /> Add New User
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       {error && (
         <div className="error-message">
@@ -187,22 +226,30 @@ const Users = () => {
 
       {stats && (
         <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-number">{stats.totalUsers}</div>
-            <div className="stat-label">Total Users</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.activeUsers}</div>
-            <div className="stat-label">Active Users</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.inactiveUsers}</div>
-            <div className="stat-label">Inactive Users</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{Object.keys(stats.roleStats).length}</div>
-            <div className="stat-label">Roles</div>
-          </div>
+          <StatCard 
+            title="Total Users" 
+            value={stats.totalUsers} 
+            icon={<UserPlus size={24} />} // Reuse UserPlus or just Users from lucide
+            color="var(--primary)"
+          />
+          <StatCard 
+            title="Active Users" 
+            value={stats.activeUsers} 
+            icon={<UserPlus size={24} />}
+            color="var(--success)"
+          />
+          <StatCard 
+            title="Inactive Users" 
+            value={stats.inactiveUsers} 
+            icon={<UserPlus size={24} />}
+            color="var(--warning)"
+          />
+          <StatCard 
+            title="Roles" 
+            value={Object.keys(stats.roleStats || {}).length} 
+            icon={<UserPlus size={24} />}
+            color="var(--info)"
+          />
         </div>
       )}
 
@@ -308,19 +355,23 @@ const Users = () => {
                 </td>
                 <td>
                   <div className="action-buttons">
-                    <button
-                      className="btn btn-sm btn-secondary"
-                      onClick={() => handleEdit(user)}
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    {user.role !== 'admin' && (
+                    <Tooltip text="Edit User" position="top">
                       <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDelete(user._id)}
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => handleEdit(user)}
                       >
-                        <Trash2 size={16} />
+                        <Pencil size={16} />
                       </button>
+                    </Tooltip>
+                    {user.role !== 'admin' && (
+                      <Tooltip text="Delete User" position="top">
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => handleDelete(user._id)}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </Tooltip>
                     )}
                   </div>
                 </td>
@@ -334,18 +385,27 @@ const Users = () => {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h2>Edit User</h2>
+              <h2>{editingUser ? 'Edit User' : 'Create New User'}</h2>
               <button className="close-btn" onClick={closeModal}>
                 <X size={20} />
               </button>
             </div>
+            
+            {!editingUser && (
+              <div className="modal-intro">
+                <h3>CBMS Create Account</h3>
+                <p>Join the College Budget Management System</p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="modal-form">
               <div className="form-group">
-                <label htmlFor="name">Name *</label>
+                <label htmlFor="name">Full Name *</label>
                 <input
                   type="text"
                   id="name"
                   name="name"
+                  placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleInputChange}
                   required
@@ -353,11 +413,12 @@ const Users = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="email">Email *</label>
+                <label htmlFor="email">Email Address *</label>
                 <input
                   type="email"
                   id="email"
                   name="email"
+                  placeholder="Enter your email address"
                   value={formData.email}
                   onChange={handleInputChange}
                   required
@@ -373,26 +434,62 @@ const Users = () => {
                   onChange={handleInputChange}
                   required
                 >
+                  <option value="">Select Role</option>
                   {roleOptions.map(role => (
                     <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="department">Department</label>
-                <select
-                  id="department"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleInputChange}
-                >
-                  <option value="">No Department</option>
-                  {departments.map(dept => (
-                    <option key={dept._id} value={dept._id}>{dept.name}</option>
-                  ))}
-                </select>
-              </div>
+              {['department', 'hod'].includes(formData.role) && (
+                <div className="form-group">
+                  <label htmlFor="department">Department *</label>
+                  <select
+                    id="department"
+                    name="department"
+                    value={formData.department}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map(dept => (
+                      <option key={dept._id} value={dept._id}>{dept.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {!editingUser && (
+                <>
+                  <div className="form-group">
+                    <label htmlFor="password">Password *</label>
+                    <input
+                      type="password"
+                      id="password"
+                      name="password"
+                      placeholder="Create a password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="confirmPassword">Confirm Password *</label>
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      placeholder="Confirm your password"
+                      value={formData.confirmPassword}
+                      onChange={handleInputChange}
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="form-group">
                 <label className="checkbox-label">
@@ -411,7 +508,7 @@ const Users = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Update User
+                  {editingUser ? 'Update User' : 'Create Account'}
                 </button>
               </div>
             </form>

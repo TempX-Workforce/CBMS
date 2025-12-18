@@ -49,6 +49,67 @@ const getUsers = async (req, res) => {
   }
 };
 
+// @desc    Create a new user
+// @route   POST /api/users
+// @access  Private/Admin
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, role, department, isActive } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email already exists'
+      });
+    }
+
+    // Validate department if role requires it
+    if (['department', 'hod'].includes(role) && department) {
+      const deptExists = await Department.findById(department);
+      if (!deptExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'Department not found'
+        });
+      }
+    }
+
+    // Create user
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role,
+      department: ['department', 'hod'].includes(role) ? department : undefined,
+      isActive: isActive !== undefined ? isActive : true
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          department: user.department,
+          isActive: user.isActive
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while creating user',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 // @desc    Get user by ID
 // @route   GET /api/users/:id
 // @access  Private/Admin
@@ -264,6 +325,7 @@ const getUserStats = async (req, res) => {
 
 module.exports = {
   getUsers,
+  createUser,
   getUserById,
   updateUser,
   deleteUser,

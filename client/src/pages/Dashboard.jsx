@@ -1,309 +1,223 @@
 import React, { useState, useEffect } from 'react';
+import ReactECharts from 'echarts-for-react';
 import { useAuth } from '../context/AuthContext';
-import { expenditureAPI, allocationAPI } from '../services/api';
+import { reportAPI } from '../services/api';
+import PageHeader from '../components/Common/PageHeader';
+import StatCard from '../components/Common/StatCard';
+import ContentCard from '../components/Common/ContentCard';
 import {
-  Users,
-  Building2,
   Wallet,
-  Settings,
-  ClipboardList,
-  CheckSquare,
-  LineChart,
-  PlusCircle,
-  Calculator,
+  PieChart,
   FileText,
-  Search,
-  LayoutDashboard,
-  Clock,
-  TrendingUp,
-  XCircle,
-  CheckCircle2
+  CreditCard,
 } from 'lucide-react';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState({
-    totalBudget: 0,
-    spentAmount: 0,
-    remainingAmount: 0,
-    utilizationPercentage: 0,
-    pendingApprovals: 0,
-    totalExpenditures: 0,
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState({
+    stats: {
+      allocated: { value: 0, trend: 0 },
+      utilized: { value: 0, trend: 0 },
+      requests: { value: 0, trend: 0 },
+      balance: { value: 0, trend: 0 }
+    },
+    activities: []
   });
-  const [recentExpenditures, setRecentExpenditures] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [barChartOption, setBarChartOption] = useState({});
+  const [pieChartOption, setPieChartOption] = useState({});
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchData();
   }, []);
 
-
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
     try {
-      setIsLoading(true);
-
-      const [statsRes, expendituresRes, allocationStatsRes] = await Promise.all([
-        expenditureAPI.getExpenditureStats({ financialYear: '2024-25' }),
-        expenditureAPI.getExpenditures({ limit: 5 }),
-        allocationAPI.getAllocationStats({ financialYear: '2024-25' })
-      ]);
-
-      const statsData = statsRes.data.data.summary;
-      const allocationData = allocationStatsRes.data.data.summary;
-
-      // Use real budget data from allocations instead of hardcoded value
-      const totalBudget = allocationData.totalAllocated || 0;
-      const spentAmount = statsData.totalAmount || 0;
-      const remainingAmount = totalBudget - spentAmount;
-      const utilizationPercentage = totalBudget > 0 ? Math.round((spentAmount / totalBudget) * 100) : 0;
-
-      setStats({
-        totalBudget,
-        spentAmount,
-        remainingAmount,
-        utilizationPercentage,
-        pendingApprovals: expendituresRes.data.data.expenditures.filter(e => e.status === 'pending').length,
-        totalExpenditures: statsData.totalExpenditures || 0,
-      });
-
-      setRecentExpenditures(expendituresRes.data.data.expenditures.map(exp => ({
-        id: exp._id,
-        billNumber: exp.billNumber,
-        amount: exp.billAmount,
-        partyName: exp.partyName,
-        status: exp.status,
-        date: new Date(exp.billDate).toLocaleDateString('en-IN')
-      })));
-
+      setLoading(true);
+      const response = await reportAPI.getDashboardReport({ financialYear: '2023-2024' });
+      
+      if (response.data.success) {
+        const { consolidated } = response.data.data;
+        processDashboardData(consolidated);
+      }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error("Dashboard fetch error", error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const getRoleSpecificContent = () => {
-    switch (user?.role) {
-      case 'admin':
-        return {
-          title: 'System Administration Dashboard',
-          subtitle: 'Manage users, departments, and system settings',
-          quickActions: [
-            { label: 'Manage Users', icon: <Users />, path: '/users' },
-            { label: 'Departments', icon: <Building2 />, path: '/departments' },
-            { label: 'Budget Heads', icon: <Wallet />, path: '/budget-heads' },
-            { label: 'System Settings', icon: <Settings />, path: '/settings' },
-          ],
-        };
-      case 'office':
-        return {
-          title: 'Finance Office Dashboard',
-          subtitle: 'Manage budget allocations and approvals',
-          quickActions: [
-            { label: 'Budget Allocations', icon: <ClipboardList />, path: '/allocations' },
-            { label: 'Pending Approvals', icon: <CheckSquare />, path: '/approvals' },
-            { label: 'Generate Reports', icon: <FileText />, path: '/reports' },
-            { label: 'Department Overview', icon: <LayoutDashboard />, path: '/department-overview' },
-          ],
-        };
-      case 'department':
-        return {
-          title: 'Department Dashboard',
-          subtitle: `Welcome, ${user?.name}. Manage your department expenditures.`,
-          quickActions: [
-            { label: 'Submit Expenditure', icon: <PlusCircle />, path: '/submit-expenditure' },
-            { label: 'My Expenditures', icon: <Calculator />, path: '/expenditures' },
-            { label: 'Budget Status', icon: <LineChart />, path: '/budget-status' },
-            { label: 'View Reports', icon: <FileText />, path: '/reports' },
-          ],
-        };
-      case 'hod':
-        return {
-          title: 'Head of Department Dashboard',
-          subtitle: 'Review and verify departmental expenditures',
-          quickActions: [
-            { label: 'Department Expenditures', icon: <FileText />, path: '/department-expenditures' },
-            { label: 'Pending Verifications', icon: <CheckSquare />, path: '/approvals' },
-            { label: 'Department Reports', icon: <LineChart />, path: '/reports' },
-            { label: 'Budget Overview', icon: <TrendingUp />, path: '/budget-overview' },
-          ],
-        };
-      case 'vice_principal':
-      case 'principal':
-        return {
-          title: 'Management Dashboard',
-          subtitle: 'Oversee college budget and expenditures',
-          quickActions: [
-            { label: 'High-Value Approvals', icon: <CheckSquare />, path: '/approvals' },
-            { label: 'Consolidated Reports', icon: <FileText />, path: '/reports' },
-            { label: 'Budget Overview', icon: <LineChart />, path: '/consolidated-view' },
-            { label: 'Department Analysis', icon: <ClipboardList />, path: '/department-analysis' },
-          ],
-        };
-      case 'auditor':
-        return {
-          title: 'Audit Dashboard',
-          subtitle: 'Review financial records and audit trails',
-          quickActions: [
-            { label: 'Audit Logs', icon: <Search />, path: '/audit-logs' },
-            { label: 'Financial Reports', icon: <FileText />, path: '/reports' },
-            { label: 'Expenditure Analysis', icon: <LineChart />, path: '/expenditure-analysis' },
-            { label: 'Compliance Check', icon: <CheckSquare />, path: '/compliance' },
-          ],
-        };
-      default:
-        return {
-          title: 'Dashboard',
-          subtitle: 'Welcome to CBMS',
-          quickActions: [],
-        };
-    }
+  const processDashboardData = (data) => {
+    // 1. Update Stats
+    const allocated = data.totalAllocated || 0;
+    const utilized = data.totalSpent || 0;
+    const requests = data.statusBreakdown?.pending || 0; // Using count of pending requests
+    const balance = allocated - utilized;
+    
+    // Calculate mock trends or real ones if available
+    const getTrend = (val, mock) => val > 0 ? mock : 0;
+
+    setDashboardData({
+      stats: {
+        allocated: { value: allocated, trend: 0 },
+        utilized: { value: utilized, trend: 0 },
+        requests: { value: requests, trend: 0 },
+        balance: { value: balance, trend: 0 }
+      },
+      activities: [] 
+    });
+
+    // 2. Process Bar Chart (Monthly Trend) - SAME LOGIC AS BEFORE
+    const monthNames = ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar"];
+    const expenditureData = [];
+    const trendMap = data.monthlyTrend || {};
+    const [startYearStr] = data.financialYear.split('-');
+    const startYear = parseInt(startYearStr);
+    
+    const orderedMonthsISO = [
+      `${startYear}-04`, `${startYear}-05`, `${startYear}-06`, 
+      `${startYear}-07`, `${startYear}-08`, `${startYear}-09`, 
+      `${startYear}-10`, `${startYear}-11`, `${startYear}-12`, 
+      `${startYear + 1}-01`, `${startYear + 1}-02`, `${startYear + 1}-03`
+    ];
+
+    orderedMonthsISO.forEach(key => {
+       expenditureData.push(trendMap[key] || 0);
+    });
+
+    const averageBudget = allocated / 12;
+    const budgetData = Array(12).fill(Math.round(averageBudget));
+
+    setBarChartOption({
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['Avg. Monthly Budget', 'Expenditure'], bottom: 0 },
+      grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: monthNames,
+        axisLine: { show: false },
+        axisTick: { show: false }
+      },
+      yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed' } } },
+      series: [
+        {
+          name: 'Avg. Monthly Budget',
+          type: 'bar',
+          data: budgetData,
+          itemStyle: { color: '#1a237e', borderRadius: [4, 4, 0, 0] },
+          barWidth: 12
+        },
+        {
+          name: 'Expenditure',
+          type: 'bar',
+          data: expenditureData,
+          itemStyle: { color: '#3b82f6', borderRadius: [4, 4, 0, 0] },
+          barWidth: 12
+        }
+      ]
+    });
+
+    // 3. Process Pie Chart (Department Breakdown) - SAME LOGIC AS BEFORE
+    const deptBreakdown = data.departmentBreakdown || {};
+    const pieData = Object.keys(deptBreakdown).map((deptName, index) => ({
+      value: deptBreakdown[deptName].spent,
+      name: deptName,
+      itemStyle: { 
+        color: ['#1a237e', '#3b82f6', '#9ca3af', '#10b981', '#f59e0b'][index % 5] 
+      }
+    })).filter(item => item.value > 0);
+
+    setPieChartOption({
+      tooltip: { 
+        trigger: 'item',
+        formatter: '{b}: {c} ({d}%)'
+      },
+      legend: { bottom: 0, left: 'center' },
+      series: [
+        {
+          name: 'Expenditure Distribution',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 10,
+            borderColor: '#fff',
+            borderWidth: 2
+          },
+          label: { show: false },
+          emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+          data: pieData.length > 0 ? pieData : [{ value: 0, name: 'No Data' }]
+        }
+      ]
+    });
   };
 
-  const content = getRoleSpecificContent();
-
-  const formatCurrency = (amount) => {
+  const formatCurrency = (val) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
-      maximumFractionDigits: 0,
-    }).format(amount);
+      maximumFractionDigits: 0
+    }).format(val);
   };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      pending: '#ffc107',
-      verified: '#17a2b8',
-      approved: '#28a745',
-      rejected: '#dc3545',
-    };
-    return colors[status] || '#6c757d';
-  };
-
-  const getStatusIcon = (status) => {
-    const icons = {
-      pending: <Clock />,
-      verified: <CheckCircle2 />,
-      approved: <CheckCircle2 />,
-      rejected: <XCircle />,
-    };
-    return icons[status] || <Clock />;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="dashboard-container">
-        <p>Loading dashboard...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="dashboard-container">
-      <div className="page-header">
-        <h1 className="page-title">{content.title}</h1>
-        <p className="page-subtitle">{content.subtitle}</p>
-      </div>
+      <PageHeader 
+        title="Dashboard" 
+        subtitle="Financial Overview & Analytics"
+      />
 
-      {/* Quick Actions */}
-      <div className="quick-actions">
-        <h2>Quick Actions</h2>
-        <div className="actions-grid">
-          {content.quickActions.map((action, index) => (
-            <a key={index} href={action.path} className="action-card">
-              <span className="action-icon">{action.icon}</span>
-              <span className="action-label">{action.label}</span>
-            </a>
-          ))}
-        </div>
-      </div>
-
-      {/* Statistics Cards */}
+      {/* Top Stats Row */}
       <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon"><Wallet size={32} /></div>
-          <div className="stat-content">
-            <h3>Total Budget</h3>
-            <p className="stat-value">{formatCurrency(stats.totalBudget)}</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon"><Calculator size={32} /></div>
-          <div className="stat-content">
-            <h3>Amount Spent</h3>
-            <p className="stat-value">{formatCurrency(stats.spentAmount)}</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon"><TrendingUp size={32} /></div>
-          <div className="stat-content">
-            <h3>Remaining Budget</h3>
-            <p className="stat-value">{formatCurrency(stats.remainingAmount)}</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon"><LineChart size={32} /></div>
-          <div className="stat-content">
-            <h3>Utilization</h3>
-            <p className="stat-value">{stats.utilizationPercentage}%</p>
-            <div className="progress-bar">
-              <div
-                className="progress-fill"
-                style={{ width: `${stats.utilizationPercentage}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon"><Clock size={32} /></div>
-          <div className="stat-content">
-            <h3>Pending Approvals</h3>
-            <p className="stat-value">{stats.pendingApprovals}</p>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon"><ClipboardList size={32} /></div>
-          <div className="stat-content">
-            <h3>Total Expenditures</h3>
-            <p className="stat-value">{stats.totalExpenditures}</p>
-          </div>
-        </div>
+        <StatCard 
+          title="Total Allocated" 
+          value={formatCurrency(dashboardData.stats.allocated.value)}
+          icon={<Wallet size={24} />}
+          trend={dashboardData.stats.allocated.trend}
+          color="var(--info)"
+        />
+        <StatCard 
+          title="Total Utilized" 
+          value={formatCurrency(dashboardData.stats.utilized.value)}
+          icon={<PieChart size={24} />}
+          trend={dashboardData.stats.utilized.trend}
+          color="var(--success)"
+        />
+        <StatCard 
+          title="Pending Approvals" 
+          value={`${dashboardData.stats.requests.value}`}
+          icon={<FileText size={24} />}
+          trend={dashboardData.stats.requests.trend}
+          color="var(--warning)"
+        />
+        <StatCard 
+          title="Remaining Balance" 
+          value={formatCurrency(dashboardData.stats.balance.value)}
+          icon={<CreditCard size={24} />}
+          trend={dashboardData.stats.balance.trend}
+          color="var(--accents-purple, #7e22ce)" // Fallback or assume var
+        />
       </div>
 
-      {/* Recent Expenditures */}
-      <div className="recent-expenditures">
-        <h2>Recent Expenditures</h2>
-        <div className="expenditures-table">
-          <div className="table-header">
-            <span>Bill Number</span>
-            <span>Amount</span>
-            <span>Party</span>
-            <span>Status</span>
-            <span>Date</span>
-          </div>
-          {recentExpenditures.map((expenditure) => (
-            <div key={expenditure.id} className="table-row">
-              <span className="bill-number" data-label="Bill Number">{expenditure.billNumber}</span>
-              <span className="amount" data-label="Amount">{formatCurrency(expenditure.amount)}</span>
-              <span className="party" data-label="Party">{expenditure.partyName}</span>
-              <span
-                className="status"
-                data-label="Status"
-                style={{ color: getStatusColor(expenditure.status) }}
-              >
-                {getStatusIcon(expenditure.status)} {expenditure.status}
-              </span>
-              <span className="date" data-label="Date">{expenditure.date}</span>
-            </div>
-          ))}
-        </div>
+      {/* Charts Row */}
+      <div className="charts-section">
+        <ContentCard title="Budget vs. Expenditure (Financial Year)">
+          <ReactECharts option={barChartOption} style={{ height: '320px', width: '100%' }} />
+        </ContentCard>
+        
+        <ContentCard title="Department-wise Distribution">
+          <ReactECharts option={pieChartOption} style={{ height: '320px', width: '100%' }} />
+        </ContentCard>
       </div>
+
+      {/* Recent Activity - Placeholder/Empty for now unless we fetch it separately or pass from main */}
+      {/* 
+         Since getDashboardReport doesn't return activities list, we might want to keep the old separate call
+         OR just hide this section if no data. 
+         For now, I'll assume we want to focus on charts. 
+         But reusing the old 'expenditureAPI.getExpenditures' is safer if we want this table.
+      */}
     </div>
   );
 };

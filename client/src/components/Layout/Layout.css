@@ -1,222 +1,42 @@
-.layout {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-gradient-primary);
-  position: relative;
-  isolation: isolate;
-  /* NO overflow - let html handle all scrolling */
-}
+ .layout {
+   display: flex;
+   min-height: 100vh;
+   background-color: var(--bg-secondary);
+ }
 
-/* Global Background Shapes */
-.layout::before,
-.layout::after {
-  content: '';
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(80px);
-  /* Heavy blue for background */
-  z-index: 0;
-  pointer-events: none;
-}
+ .main-wrapper {
+   flex: 1;
+   display: flex;
+   flex-direction: column;
+   margin-left: 80px;
+   /* Match collapsed sidebar width */
+   min-height: 100vh;
+   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+   width: calc(100% - 80px);
+ }
 
-.layout::before {
-  top: -150px;
-  right: -100px;
-}
+ .main-wrapper.expanded {
+   margin-left: 260px;
+   width: calc(100% - 260px);
+ }
 
-.layout::after {
-  bottom: -150px;
-  left: -100px;
-}
+ .main-content {
+   flex: 1;
+   padding: 2rem;
+   overflow-x: hidden;
+   max-width: 1600px;
+   width: 100%;
+   margin: 0 auto;
+ }
 
-.main-content {
-  flex: 1;
-  background: transparent;
-  /* Allow gradient to show through */
-  min-height: 0;
-  /* Allow flex shrink */
-  padding-bottom: 2rem;
-  position: relative;
-  z-index: 1;
-  /* NO overflow - let html handle all scrolling */
-}
+ /* Mobile Responsive */
+ @media (max-width: 1024px) {
+   .main-wrapper {
+     margin-left: 0;
+     width: 100%;
+   }
 
-.page-container {
-  max-width: min(1400px, 95vw);
-  margin: 0 auto;
-  padding: clamp(1rem, 4vw, 2rem);
-  width: 100%;
-  animation: fadeIn 0.4s ease-out;
-  position: relative;
-  z-index: 2;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.page-header {
-  background: transparent;
-  padding: 0 0 clamp(1rem, 3vw, 2rem) 0;
-  margin-bottom: 0;
-  border-radius: 0;
-  box-shadow: none;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: clamp(0.5rem, 2vw, 1rem);
-}
-
-.page-title {
-  font-size: clamp(1.5rem, 4vw + 0.5rem, 2.5rem);
-  font-weight: 800;
-  color: white;
-  /* Changed to white for contrast on gradient */
-  margin: 0 0 0.5rem 0;
-  letter-spacing: -0.025em;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.page-subtitle {
-  font-size: clamp(0.9rem, 1.5vw + 0.5rem, 1.25rem);
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 500;
-  margin: 0;
-}
-
-.page-content {
-  background: transparent;
-  padding: 0;
-  box-shadow: none;
-  border-radius: 0;
-}
-
-/* Glassmorphism Card Styles */
-.card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-backdrop);
-  border: var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  border-radius: var(--radius-xl);
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.15);
-  background: var(--glass-bg-hover);
-}
-
-/* Featured/Interactable Card Variant */
-.card.interactive:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 25px 50px -12px rgba(79, 70, 229, 0.25);
-  border-color: rgba(79, 70, 229, 0.3);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.25rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.card-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.card-icon {
-  font-size: 1.25rem;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--radius-lg);
-  margin-right: 0.75rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.card-body {
-  color: var(--text-secondary);
-}
-
-/* Loading Spinner */
-.loading-spinner {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  color: white;
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 4rem 2rem;
-  color: var(--text-tertiary);
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: var(--radius-lg);
-  border: 2px dashed rgba(0, 0, 0, 0.1);
-}
-
-.empty-state-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.8;
-  color: var(--text-tertiary);
-}
-
-.empty-state-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-  color: var(--text-primary);
-}
-
-.empty-state-message {
-  font-size: 0.9375rem;
-  color: var(--text-secondary);
-  margin-bottom: 1.5rem;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* Responsive Design - Viewport-Based */
-/* Card padding scales with viewport */
-.card {
-  padding: clamp(1rem, 3vw, 1.5rem);
-}
-
-.card-header {
-  flex-wrap: wrap;
-  gap: clamp(0.5rem, 2vw, 1rem);
-}
+   .main-content {
+     padding: 1rem;
+   }
+ }

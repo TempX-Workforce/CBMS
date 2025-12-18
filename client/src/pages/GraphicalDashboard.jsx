@@ -3,7 +3,7 @@ import ReactECharts from 'echarts-for-react';
 import { allocationAPI, expenditureAPI, reportAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import ErrorBoundary from '../components/ErrorBoundary';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, Wallet, TrendingUp, PiggyBank, Percent } from 'lucide-react';
 import './GraphicalDashboard.css';
 
 const GraphicalDashboard = () => {
@@ -341,10 +341,10 @@ const GraphicalDashboard = () => {
   const getKeyMetrics = () => {
     if (!dashboardData || !dashboardData.allocations || !dashboardData.expenditures) {
       return [
-        { title: 'Total Budget', value: '₹0', icon: 'fas fa-wallet', color: '#667eea', change: '0%' },
-        { title: 'Total Spent', value: '₹0', icon: 'fas fa-chart-line', color: '#28a745', change: '0%' },
-        { title: 'Remaining Budget', value: '₹0', icon: 'fas fa-piggy-bank', color: '#ffc107', change: '0%' },
-        { title: 'Utilization Rate', value: '0%', icon: 'fas fa-percentage', color: '#17a2b8', change: '0%' }
+        { title: 'Total Budget', value: '₹0', icon: <Wallet size={24} />, color: '#667eea', change: '0%' },
+        { title: 'Total Spent', value: '₹0', icon: <TrendingUp size={24} />, color: '#28a745', change: '0%' },
+        { title: 'Remaining Budget', value: '₹0', icon: <PiggyBank size={24} />, color: '#ffc107', change: '0%' },
+        { title: 'Utilization Rate', value: '0%', icon: <Percent size={24} />, color: '#17a2b8', change: '0%' }
       ];
     }
 
@@ -356,16 +356,18 @@ const GraphicalDashboard = () => {
     const totalRemaining = totalAllocated - totalSpent;
     const utilizationPercentage = totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
 
+    const getChange = (val, mockChange) => (val === 0 ? '0%' : mockChange);
+
     return [
-      { title: 'Total Budget', value: formatCurrency(totalAllocated), icon: 'fas fa-wallet', color: '#667eea', change: '+12.5%' },
-      { title: 'Total Spent', value: formatCurrency(totalSpent), icon: 'fas fa-chart-line', color: '#28a745', change: '+8.2%' },
-      { title: 'Remaining Budget', value: formatCurrency(totalRemaining), icon: 'fas fa-piggy-bank', color: '#ffc107', change: '-5.3%' },
+      { title: 'Total Budget', value: formatCurrency(totalAllocated), icon: <Wallet size={24} />, color: '#667eea', change: null },
+      { title: 'Total Spent', value: formatCurrency(totalSpent), icon: <TrendingUp size={24} />, color: '#28a745', change: null },
+      { title: 'Remaining Budget', value: formatCurrency(totalRemaining), icon: <PiggyBank size={24} />, color: '#ffc107', change: null },
       {
         title: 'Utilization Rate',
         value: `${utilizationPercentage.toFixed(1)}%`,
-        icon: 'fas fa-percentage',
+        icon: <Percent size={24} />,
         color: utilizationPercentage > 90 ? '#dc3545' : utilizationPercentage > 75 ? '#ffc107' : '#17a2b8',
-        change: '+2.1%'
+        change: null
       }
     ];
   };
@@ -408,7 +410,7 @@ const GraphicalDashboard = () => {
           {getKeyMetrics().map((metric, index) => (
             <div key={index} className="metric-card">
               <div className="metric-icon" style={{ backgroundColor: metric.color }}>
-                <i className={metric.icon}></i>
+                {metric.icon}
               </div>
               <div className="metric-content">
                 <h3>{metric.value}</h3>
