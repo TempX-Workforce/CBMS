@@ -13,7 +13,22 @@ const {
 const { verifyToken } = require('../middleware/auth');
 
 // Public routes
-router.post('/login', loginUser);
+const { check, validationResult } = require('express-validator');
+
+const validateLogin = [
+  check('email').isEmail().withMessage('Please include a valid email').normalizeEmail(),
+  check('password').exists().withMessage('Password is required'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    next();
+  }
+];
+
+// Public routes
+router.post('/login', validateLogin, loginUser);
 // router.post('/register', registerUser);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:token', resetPassword);

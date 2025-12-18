@@ -17,6 +17,7 @@ const fileRoutes = require('./routes/files');
 const auditLogRoutes = require('./routes/auditLogs');
 const reportRoutes = require('./routes/reports');
 const systemRoutes = require('./routes/system');
+const pushRoutes = require('./routes/pushRoutes');
 
 // Import services
 const { initReminderService } = require('./services/reminderService');
@@ -31,6 +32,22 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Security Middleware
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
+app.use(helmet());
+
+// Rate limiting: 100 requests per 15 minutes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+app.use('/api', limiter);
 
 // Serve static files (for uploaded attachments)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -70,6 +87,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/push', pushRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

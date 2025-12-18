@@ -2,6 +2,7 @@ const NodeClam = require('clamscan');
 const fs = require('fs');
 const path = require('path');
 const AuditLog = require('../models/AuditLog');
+const fileType = require('file-type');
 
 // Virus scanner instance
 let clamScanner = null;
@@ -148,6 +149,17 @@ const scanUploadedFiles = async (req, res, next) => {
     // Scan each uploaded file
     for (const file of req.files) {
       console.log(`Scanning file: ${file.originalname} (${file.filename})`);
+
+      // Verify file type using magic numbers
+      try {
+        const type = await fileType.fromFile(file.path);
+        if (type && type.mime !== file.mimetype) {
+          console.warn(`⚠️ Mime-type mismatch for ${file.originalname}: Claimed ${file.mimetype}, Detected ${type.mime}`);
+          // Potential policy: reject if mismatch. For now, just warn and audit.
+        }
+      } catch (ftError) {
+        console.warn('Could not determine file type via magic numbers:', ftError);
+      }
 
       const result = await scanFile(file.path);
       scanResults.push({
