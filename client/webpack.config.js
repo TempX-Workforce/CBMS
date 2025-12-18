@@ -70,8 +70,8 @@ module.exports = (env, argv) => {
         directory: path.join(__dirname, 'public'),
       },
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com data:; connect-src 'self' http://localhost:5000 ws://localhost:3000 https://fonts.googleapis.com https://fonts.gstatic.com https://cbms-mjcv.onrender.com;",
+        'Access-Control-Allow-Origin': '*', 
+        'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com data:; connect-src 'self' http://localhost:5000 ws://localhost:3000 https://fonts.googleapis.com https://fonts.gstatic.com https://cbms-mjcv.onrender.com http://tempx-workforce.github.io/cbms;",
       },
       port: 3000,
       hot: true,
@@ -80,12 +80,12 @@ module.exports = (env, argv) => {
       proxy: [
         {
           context: ['/api'],
-          target: 'https://cbms-mjcv.onrender.com',
+          target: 'http://tempx-workforce.github.io/cbms' || "https://cbms-mjcv.onrender.com" || "http://localhost:3000",
           changeOrigin: true,
-          secure: false,
+          secure: true,
           onProxyReq: (proxyReq) => {
-            // Spoof the Origin header to bypass strict CORS on backend
-            proxyReq.setHeader('Origin', 'https://tempx-workforce.github.io/cbms');
+            // Spoof the Origin header to bypass strict CORS on backend 
+            proxyReq.setHeader('Origin', 'https://cbms-mjcv.onrender.com' || "http://localhost:3000" || "http://tempx-workforce.github.io/cbms");
           },
         },
       ],

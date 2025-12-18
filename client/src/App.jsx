@@ -6,7 +6,6 @@ import Layout from './components/Layout/Layout';
 
 // Pages
 import Login from './pages/Login';
-import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
@@ -40,11 +39,9 @@ function App() {
         <div className="App">
           <Routes>
             {/* Public Routes */}
-            <Route path="/login" element={<Login />} />
-            {/* <Route path="/signup" element={<Signup />} /> */}
-
+            <Route path="/cbms/login" element={<Login />} />
             {/* Protected Routes */}
-            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route path="/cbms" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
 
@@ -88,7 +85,7 @@ function App() {
             <Route path="/reset-password/:token" element={<ResetPassword />} />
 
             {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/cbms/dashboard" replace />} />
           </Routes>
         </div>
       </Router>

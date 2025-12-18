@@ -204,7 +204,7 @@ const ResetPassword = () => {
                 </form>
 
                 <div className="back-to-login">
-                    <Link to="/login">
+                    <Link to="/cbms/login">
                         Back to Login
                     </Link>
                 </div>
