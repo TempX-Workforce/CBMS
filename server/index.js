@@ -30,6 +30,7 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:3000',
       'https://tempx-workforce.github.io',
+      'https://tempx-workforce.github.io/CBMS',
       'https://cbms-mjcv.onrender.com',
       process.env.CORS_ORIGIN
     ].filter(Boolean);
