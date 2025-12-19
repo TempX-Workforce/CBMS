@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import ReactECharts from 'echarts-for-react';
 import { allocationAPI } from '../services/api';
+import { Download, FileSpreadsheet, FileText } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 import './YearComparison.css';
 
 const YearComparison = () => {
@@ -56,6 +61,181 @@ const YearComparison = () => {
     if (change > 0) return 'fas fa-arrow-up';
     if (change < 0) return 'fas fa-arrow-down';
     return 'fas fa-minus';
+  };
+
+  const handleExportCSV = () => {
+    if (!comparisonData?.departmentComparison) return;
+
+    const csvData = comparisonData.departmentComparison.map(dept => ({
+      Department: dept.departmentName,
+      [`Allocation ${filters.currentYear}`]: dept.allocationChange.current,
+      [`Allocation ${filters.previousYear}`]: dept.allocationChange.previous,
+      [`Allocation Change %`]: dept.allocationChange.changePercentage,
+      [`Spending ${filters.currentYear}`]: dept.spendingChange.current,
+      [`Spending ${filters.previousYear}`]: dept.spendingChange.previous,
+      [`Spending Change %`]: dept.spendingChange.changePercentage
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(csvData);
+    const csvOutput = XLSX.utils.sheet_to_csv(ws);
+    
+    const blob = new Blob([csvOutput], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `year-comparison-${filters.currentYear}-vs-${filters.previousYear}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  const handleExcelExport = () => {
+      if (!comparisonData?.departmentComparison) return;
+
+      const exportData = comparisonData.departmentComparison.map(dept => ({
+        'Department': dept.departmentName,
+        [`Allocation ${filters.currentYear}`]: dept.allocationChange.current,
+        [`Allocation ${filters.previousYear}`]: dept.allocationChange.previous,
+        'Allocation Change %': dept.allocationChange.changePercentage,
+        [`Spending ${filters.currentYear}`]: dept.spendingChange.current,
+        [`Spending ${filters.previousYear}`]: dept.spendingChange.previous,
+        'Spending Change %': dept.spendingChange.changePercentage,
+        [`Utilization ${filters.currentYear} %`]: dept.utilizationChange.current,
+        [`Utilization ${filters.previousYear} %`]: dept.utilizationChange.previous
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Year Comparison');
+      XLSX.writeFile(wb, `year-comparison-${filters.currentYear}-vs-${filters.previousYear}.xlsx`);
+  };
+
+  const handlePDFExport = () => {
+    if (!comparisonData?.departmentComparison) return;
+
+    const doc = new jsPDF();
+    const fileName = `year-comparison-${filters.currentYear}-vs-${filters.previousYear}.pdf`;
+
+    doc.setFontSize(18);
+    doc.text('Year-over-Year Comparison Report', 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Comparison: ${filters.currentYear} vs ${filters.previousYear}`, 14, 30);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 38);
+
+    const columns = [
+      'Department', 
+      `Alloc ${filters.currentYear}`, 
+      `Alloc ${filters.previousYear}`, 
+      'Change %',
+      `Spent ${filters.currentYear}`,
+      `Spent ${filters.previousYear}`,
+      'Change %'
+    ];
+
+    const rows = comparisonData.departmentComparison.map(dept => [
+      dept.departmentName,
+      formatCurrency(dept.allocationChange.current),
+      formatCurrency(dept.allocationChange.previous),
+      `${dept.allocationChange.changePercentage}%`,
+      formatCurrency(dept.spendingChange.current),
+      formatCurrency(dept.spendingChange.previous),
+      `${dept.spendingChange.changePercentage}%`
+    ]);
+
+    doc.autoTable({
+      head: [columns],
+      body: rows,
+      startY: 45,
+      theme: 'grid',
+      headStyles: { fillColor: [79, 70, 229] },
+      styles: { fontSize: 8 }
+    });
+
+    doc.save(fileName);
+  };
+
+  const getAllocationComparisonOption = () => {
+    if (!comparisonData?.departmentComparison) return null;
+
+    const departments = comparisonData.departmentComparison.map(d => d.departmentName);
+    const previousYearData = comparisonData.departmentComparison.map(d => d.allocationChange.previous);
+    const currentYearData = comparisonData.departmentComparison.map(d => d.allocationChange.current);
+
+    return {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params) => {
+          return params.map(param =>
+            `${param.seriesName}: ${formatCurrency(param.value)}`
+          ).join('<br/>');
+        }
+      },
+      legend: {
+        data: [`${filters.previousYear}`, `${filters.currentYear}`],
+        top: 0
+      },
+      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      xAxis: { type: 'category', data: departments },
+      yAxis: { type: 'value' },
+      series: [
+        {
+          name: filters.previousYear,
+          type: 'bar',
+          data: previousYearData,
+          itemStyle: { color: '#9ca3af' }
+        },
+        {
+          name: filters.currentYear,
+          type: 'bar',
+          data: currentYearData,
+          itemStyle: { color: '#4f46e5' }
+        }
+      ]
+    };
+  };
+
+  const getSpendingComparisonOption = () => {
+    if (!comparisonData?.departmentComparison) return null;
+
+    const departments = comparisonData.departmentComparison.map(d => d.departmentName);
+    const previousYearData = comparisonData.departmentComparison.map(d => d.spendingChange.previous);
+    const currentYearData = comparisonData.departmentComparison.map(d => d.spendingChange.current);
+
+    return {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params) => {
+          return params.map(param =>
+            `${param.seriesName}: ${formatCurrency(param.value)}`
+          ).join('<br/>');
+        }
+      },
+      legend: {
+        data: [`${filters.previousYear}`, `${filters.currentYear}`],
+        top: 0
+      },
+      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      xAxis: { type: 'category', data: departments },
+      yAxis: { type: 'value' },
+      series: [
+        {
+          name: filters.previousYear,
+          type: 'bar',
+          data: previousYearData,
+          itemStyle: { color: '#9ca3af' }
+        },
+        {
+          name: filters.currentYear,
+          type: 'bar',
+          data: currentYearData,
+          itemStyle: { color: '#10b981' }
+        }
+      ]
+    };
   };
 
   const renderOverallComparison = () => {
@@ -329,6 +509,18 @@ const YearComparison = () => {
             </select>
           </div>
         </div>
+        
+        <div className="export-actions">
+           <button className="btn btn-outline" onClick={handleExportCSV} title="Export CSV">
+              <FileText size={18} />
+           </button>
+           <button className="btn btn-outline" onClick={handleExcelExport} title="Export Excel">
+              <FileSpreadsheet size={18} />
+           </button>
+           <button className="btn btn-outline" onClick={handlePDFExport} title="Export PDF">
+              <Download size={18} />
+           </button>
+        </div>
       </div>
 
       {loading && (
@@ -340,6 +532,19 @@ const YearComparison = () => {
       {comparisonData && !loading && (
         <div className="year-comparison-results">
           {renderOverallComparison()}
+          
+          <div className="charts-section">
+             <div className="chart-card">
+               <h3>Allocation Comparison</h3>
+               <ReactECharts option={getAllocationComparisonOption()} style={{ height: '350px' }} />
+             </div>
+             <div className="chart-card">
+               <h3>Spending Comparison</h3>
+                <ReactECharts option={getSpendingComparisonOption()} style={{ height: '350px' }} />
+             </div>
+          </div>
+
+          {renderDepartmentComparison()}
           {renderDepartmentComparison()}
           {renderBudgetHeadComparison()}
         </div>

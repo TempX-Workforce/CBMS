@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
 import { departmentsAPI } from '../services/api';
+import { getCurrentFinancialYear, getPreviousFinancialYear } from '../utils/dateUtils';
 import { ArrowLeft, Building2, TrendingUp, TrendingDown, Calendar, AlertCircle, FileText, IndianRupee } from 'lucide-react';
 import './DepartmentDetail.css';
 
@@ -10,7 +11,18 @@ const DepartmentDetail = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [departmentData, setDepartmentData] = useState(null);
-    const [selectedFinancialYear, setSelectedFinancialYear] = useState('2024-2025');
+    const currentFY = getCurrentFinancialYear();
+    const previousFY = getPreviousFinancialYear();
+    
+    // Simple logic to get a year before previous
+    const getFYMinus2 = () => {
+        const [start] = previousFY.split('-');
+        const year = parseInt(start) - 1;
+        return `${year}-${year + 1}`;
+    };
+    const fyMinus2 = getFYMinus2();
+
+    const [selectedFinancialYear, setSelectedFinancialYear] = useState(currentFY);
 
     useEffect(() => {
         fetchDepartmentData();
@@ -183,9 +195,9 @@ const DepartmentDetail = () => {
                         <div className="financial-year-selector">
                             <Calendar size={16} />
                             <select value={selectedFinancialYear} onChange={(e) => setSelectedFinancialYear(e.target.value)}>
-                                <option value="2024-2025">FY 2024-2025</option>
-                                <option value="2023-2024">FY 2023-2024</option>
-                                <option value="2022-2023">FY 2022-2023</option>
+                                <option value={currentFY}>FY {currentFY}</option>
+                                <option value={previousFY}>FY {previousFY}</option>
+                                <option value={fyMinus2}>FY {fyMinus2}</option>
                             </select>
                         </div>
                     </div>

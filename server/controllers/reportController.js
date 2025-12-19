@@ -617,6 +617,7 @@ const generateExpenditureCSV = (expenditures) => {
     'Status',
     'Submitted By',
     'Expense Details',
+    'Attachments',
     'Created At'
   ];
 
@@ -630,6 +631,7 @@ const generateExpenditureCSV = (expenditures) => {
     exp.status,
     exp.submittedBy.name,
     exp.expenseDetails,
+    exp.attachments ? exp.attachments.map(a => a.url).join('; ') : '',
     exp.createdAt.toISOString()
   ]);
 

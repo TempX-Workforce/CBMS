@@ -31,7 +31,7 @@ const getAllocations = async (req, res) => {
 
     const allocations = await Allocation.find(query)
       .populate('department', 'name code')
-      .populate('budgetHead', 'name category')
+      .populate('budgetHead', 'name category code')
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 })
       .limit(limit * 1)

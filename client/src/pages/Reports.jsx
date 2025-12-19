@@ -19,7 +19,8 @@ const Reports = () => {
     budgetHeadId: '',
     status: '',
     submittedBy: '',
-    financialYear: ''
+    financialYear: '',
+    includeComparison: false
   });
   const [departments, setDepartments] = useState([]);
   const [budgetHeads, setBudgetHeads] = useState([]);
@@ -57,6 +58,17 @@ const Reports = () => {
     setReportType(type);
     setReportData(null);
     setError(null);
+    if (type === 'dashboard') {
+      setFilters(prev => ({ ...prev, includeComparison: false }));
+    }
+  };
+
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: checked
+    }));
   };
 
   const generateReport = async () => {
@@ -123,7 +135,8 @@ const Reports = () => {
         'Department': exp.department.name,
         'Budget Head': exp.budgetHead.name,
         'Status': exp.status,
-        'Details': exp.expenseDetails
+        'Details': exp.expenseDetails,
+        'Attachments': exp.attachments ? exp.attachments.map(a => a.url).join(', ') : 'None'
       }));
     } else if (reportType === 'allocations') {
       exportData = data.allocations.map(alloc => ({
@@ -157,14 +170,15 @@ const Reports = () => {
     let rows = [];
 
     if (reportType === 'expenditures') {
-      columns = ['Bill #', 'Date', 'Amount', 'Party', 'Dept', 'Status'];
+      columns = ['Bill #', 'Date', 'Amount', 'Party', 'Dept', 'Status', 'Attachments'];
       rows = data.expenditures.map(exp => [
         exp.billNumber,
         formatDate(exp.billDate),
         formatCurrency(exp.billAmount),
         exp.partyName,
         exp.department.name,
-        exp.status
+        exp.status,
+        exp.attachments ? `${exp.attachments.length} files` : '0 files'
       ]);
     } else if (reportType === 'allocations') {
       columns = ['FY', 'Dept', 'Budget Head', 'Allocated', 'Spent', 'Remaining'];
@@ -241,58 +255,40 @@ const Reports = () => {
         </div>
 
         <div className="report-breakdown">
-          <h3>Department Breakdown</h3>
+          <h3>Expenditure Register (Bill-wise)</h3>
           <div className="breakdown-table table-responsive">
             <table>
               <thead>
                 <tr>
+                  <th>Bill #</th>
+                  <th>Date</th>
                   <th>Department</th>
-                  <th>Count</th>
                   <th>Total Amount</th>
-                  <th>Approved</th>
-                  <th>Pending</th>
-                  <th>Rejected</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                  <th>Attachments</th>
                 </tr>
               </thead>
               <tbody>
-                {reportData.departmentBreakdown.map((dept, index) => (
+                {reportData.expenditures.map((exp, index) => (
                   <tr key={index}>
-                    <td data-label="Department">{dept.departmentName}</td>
-                    <td data-label="Count">{dept.count}</td>
-                    <td data-label="Total Amount">{formatCurrency(dept.totalAmount)}</td>
-                    <td className="approved" data-label="Approved">{formatCurrency(dept.approvedAmount)}</td>
-                    <td className="pending" data-label="Pending">{formatCurrency(dept.pendingAmount)}</td>
-                    <td className="rejected" data-label="Rejected">{formatCurrency(dept.rejectedAmount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="report-breakdown">
-          <h3>Budget Head Breakdown</h3>
-          <div className="breakdown-table table-responsive">
-            <table>
-              <thead>
-                <tr>
-                  <th>Budget Head</th>
-                  <th>Count</th>
-                  <th>Total Amount</th>
-                  <th>Approved</th>
-                  <th>Pending</th>
-                  <th>Rejected</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.budgetHeadBreakdown.map((head, index) => (
-                  <tr key={index}>
-                    <td data-label="Budget Head">{head.budgetHeadName} ({head.budgetHeadCode})</td>
-                    <td data-label="Count">{head.count}</td>
-                    <td data-label="Total Amount">{formatCurrency(head.totalAmount)}</td>
-                    <td className="approved" data-label="Approved">{formatCurrency(head.approvedAmount)}</td>
-                    <td className="pending" data-label="Pending">{formatCurrency(head.pendingAmount)}</td>
-                    <td className="rejected" data-label="Rejected">{formatCurrency(head.rejectedAmount)}</td>
+                    <td data-label="Bill #">{exp.billNumber}</td>
+                    <td data-label="Date">{formatDate(exp.billDate)}</td>
+                    <td data-label="Department">{exp.department.name}</td>
+                    <td data-label="Total Amount">{formatCurrency(exp.billAmount)}</td>
+                    <td class={`status ${exp.status}`} data-label="Status">{exp.status}</td>
+                    <td data-label="Details">{exp.expenseDetails}</td>
+                    <td data-label="Attachments">
+                      {exp.attachments && exp.attachments.length > 0 ? (
+                        <div className="attachments-list">
+                          {exp.attachments.map((file, i) => (
+                            <a key={i} href={file.url} target="_blank" rel="noopener noreferrer" className="attachment-link">
+                              <i className="fas fa-paperclip"></i> {i + 1}
+                            </a>
+                          ))}
+                        </div>
+                      ) : '-'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -317,23 +313,19 @@ const Reports = () => {
             </div>
             <div className="summary-item">
               <span className="label">Total Allocated:</span>
-              <span className="value">{formatCurrency(reportData.summary.totalAllocatedAmount)}</span>
+              <span className="value">{formatCurrency(reportData.summary.totalAllocated)}</span>
             </div>
             <div className="summary-item">
               <span className="label">Total Spent:</span>
-              <span className="value">{formatCurrency(reportData.summary.totalSpentAmount)}</span>
+              <span className="value">{formatCurrency(reportData.summary.totalSpent)}</span>
             </div>
             <div className="summary-item">
               <span className="label">Total Remaining:</span>
-              <span className="value">{formatCurrency(reportData.summary.totalRemainingAmount)}</span>
+              <span className="value">{formatCurrency(reportData.summary.totalRemaining)}</span>
             </div>
             <div className="summary-item">
               <span className="label">Utilization:</span>
-              <span className="value">{reportData.summary.utilizationPercentage}%</span>
-            </div>
-            <div className="summary-item">
-              <span className="label">Average Allocation:</span>
-              <span className="value">{formatCurrency(reportData.summary.averageAllocation)}</span>
+              <span className="value">{reportData.summary.averageUtilization.toFixed(2)}%</span>
             </div>
           </div>
         </div>
@@ -353,16 +345,51 @@ const Reports = () => {
                 </tr>
               </thead>
               <tbody>
-                {reportData.departmentBreakdown.map((dept, index) => (
+                {Object.entries(reportData.summary.byDepartment).map(([deptName, deptData], index) => (
                   <tr key={index}>
-                    <td data-label="Department">{dept.departmentName}</td>
-                    <td data-label="Allocations">{dept.count}</td>
-                    <td data-label="Total Allocated">{formatCurrency(dept.totalAllocated)}</td>
-                    <td data-label="Total Spent">{formatCurrency(dept.totalSpent)}</td>
-                    <td data-label="Remaining">{formatCurrency(dept.totalRemaining)}</td>
-                    <td data-label="Utilization %">{Math.round((dept.totalSpent / dept.totalAllocated) * 100)}%</td>
+                    <td data-label="Department">{deptName}</td>
+                    <td data-label="Allocations">{deptData.count}</td>
+                    <td data-label="Total Allocated">{formatCurrency(deptData.allocated)}</td>
+                    <td data-label="Total Spent">{formatCurrency(deptData.spent)}</td>
+                    <td data-label="Remaining">{formatCurrency(deptData.remaining)}</td>
+                    <td data-label="Utilization %">{deptData.allocated > 0 ? ((deptData.spent / deptData.allocated) * 100).toFixed(0) : 0}%</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="report-breakdown">
+          <h3>Detailed Allocations</h3>
+          <div className="breakdown-table table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Financial Year</th>
+                  <th>Department</th>
+                  <th>Budget Head</th>
+                  <th>Allocated</th>
+                  <th>Spent</th>
+                  <th>Remaining</th>
+                  <th>Utilization %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.allocations.map((alloc, index) => {
+                  const util = alloc.allocatedAmount > 0 ? (alloc.spentAmount / alloc.allocatedAmount) * 100 : 0;
+                  return (
+                    <tr key={index}>
+                      <td data-label="FY">{alloc.financialYear}</td>
+                      <td data-label="Department">{alloc.department.name}</td>
+                      <td data-label="Budget Head">{alloc.budgetHead.name}</td>
+                      <td data-label="Allocated">{formatCurrency(alloc.allocatedAmount)}</td>
+                      <td data-label="Spent">{formatCurrency(alloc.spentAmount)}</td>
+                      <td data-label="Remaining">{formatCurrency(alloc.remainingAmount)}</td>
+                      <td data-label="Utilization %">{util.toFixed(0)}%</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -374,37 +401,60 @@ const Reports = () => {
   const renderDashboardReport = () => {
     if (!reportData) return null;
 
+    // Use reportData directly or reportData.consolidated depending on what backend sends
+    const data = reportData.consolidated || reportData;
+
     return (
       <div className="report-content">
         <div className="report-summary">
-          <h3>Overall Statistics</h3>
+          <h3>Overall Statistics ({data.financialYear})</h3>
           <div className="summary-grid">
             <div className="summary-item">
-              <span className="label">Total Departments:</span>
-              <span className="value">{reportData.overallStats.totalDepartments}</span>
-            </div>
-            <div className="summary-item">
-              <span className="label">Total Budget Heads:</span>
-              <span className="value">{reportData.overallStats.totalBudgetHeads}</span>
-            </div>
-            <div className="summary-item">
               <span className="label">Total Allocated:</span>
-              <span className="value">{formatCurrency(reportData.overallStats.totalAllocatedAmount)}</span>
+              <span className="value">{formatCurrency(data.totalAllocated)}</span>
             </div>
             <div className="summary-item">
               <span className="label">Total Spent:</span>
-              <span className="value">{formatCurrency(reportData.overallStats.totalSpentAmount)}</span>
+              <span className="value">{formatCurrency(data.totalSpent)}</span>
             </div>
             <div className="summary-item">
               <span className="label">Total Remaining:</span>
-              <span className="value">{formatCurrency(reportData.overallStats.totalRemainingAmount)}</span>
+              <span className="value">{formatCurrency(data.totalRemaining || (data.totalAllocated - data.totalSpent))}</span>
             </div>
             <div className="summary-item">
-              <span className="label">Overall Utilization:</span>
-              <span className="value">{reportData.overallStats.utilizationPercentage}%</span>
+              <span className="label">Utilization:</span>
+              <span className="value">{data.utilizationPercentage ? data.utilizationPercentage.toFixed(2) : 0}%</span>
+            </div>
+            <div className="summary-item">
+                <span className="label">Pending Bills:</span>
+                <span className="value pending">{formatCurrency(data.totalPending)}</span>
+            </div>
+             <div className="summary-item">
+                <span className="label">Approved Bills:</span>
+                <span className="value approved">{formatCurrency(data.totalApproved)}</span>
             </div>
           </div>
         </div>
+
+        {data.yearComparison && (
+          <div className="report-comparison">
+            <h3>Year-over-Year Comparison ({data.yearComparison.previousYear} vs {data.yearComparison.currentYear})</h3>
+            <div className="comparison-grid">
+               <div className="comparison-item">
+                <span className="label">Allocated Change</span>
+                <span className={`value ${data.yearComparison.summary.changes.allocatedChange >= 0 ? 'positive' : 'negative'}`}>
+                  {data.yearComparison.summary.changes.allocatedChange.toFixed(2)}%
+                </span>
+              </div>
+              <div className="comparison-item">
+                <span className="label">Spent Change</span>
+                <span className={`value ${data.yearComparison.summary.changes.spentChange >= 0 ? 'positive' : 'negative'}`}>
+                  {data.yearComparison.summary.changes.spentChange.toFixed(2)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="report-breakdown">
           <h3>Department Performance</h3>
@@ -417,43 +467,20 @@ const Reports = () => {
                   <th>Spent</th>
                   <th>Remaining</th>
                   <th>Utilization %</th>
-                  <th>Expenditures</th>
                 </tr>
               </thead>
               <tbody>
-                {reportData.departmentPerformance.map((dept, index) => (
+                {data.departmentBreakdown && Object.entries(data.departmentBreakdown).map(([deptName, deptData], index) => (
                   <tr key={index}>
-                    <td data-label="Department">{dept.departmentName}</td>
-                    <td data-label="Allocated">{formatCurrency(dept.totalAllocated)}</td>
-                    <td data-label="Spent">{formatCurrency(dept.totalSpent)}</td>
-                    <td data-label="Remaining">{formatCurrency(dept.totalRemaining)}</td>
-                    <td data-label="Utilization %">{dept.utilizationPercentage}%</td>
-                    <td data-label="Expenditures">{dept.expenditureCount}</td>
+                    <td data-label="Department">{deptName}</td>
+                    <td data-label="Allocated">{formatCurrency(deptData.allocated)}</td>
+                    <td data-label="Spent">{formatCurrency(deptData.spent)}</td>
+                    <td data-label="Remaining">{formatCurrency(deptData.remaining)}</td>
+                    <td data-label="Utilization %">{deptData.utilization ? deptData.utilization.toFixed(2) : 0}%</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-
-        <div className="report-breakdown">
-          <h3>Recent Activities</h3>
-          <div className="activities-list">
-            {reportData.recentActivities.map((activity, index) => (
-              <div key={index} className="activity-item">
-                <div className="activity-icon">
-                  <i className={`fas fa-${activity.type === 'expenditure_submitted' ? 'paper-plane' : 'check-circle'}`}></i>
-                </div>
-                <div className="activity-content">
-                  <div className="activity-description">{activity.description}</div>
-                  <div className="activity-meta">
-                    <span className="activity-amount">{formatCurrency(activity.amount)}</span>
-                    <span className="activity-date">{formatDate(activity.date)}</span>
-                    <span className={`activity-status ${activity.status}`}>{activity.status}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </div>

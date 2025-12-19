@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { useAuth } from '../context/AuthContext';
 import { reportAPI } from '../services/api';
+import { getCurrentFinancialYear } from '../utils/dateUtils';
 import PageHeader from '../components/Common/PageHeader';
 import StatCard from '../components/Common/StatCard';
 import ContentCard from '../components/Common/ContentCard';
@@ -35,7 +36,8 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await reportAPI.getDashboardReport({ financialYear: '2023-2024' });
+      const currentFY = getCurrentFinancialYear();
+      const response = await reportAPI.getDashboardReport({ financialYear: currentFY });
       
       if (response.data.success) {
         const { consolidated } = response.data.data;

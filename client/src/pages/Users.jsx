@@ -334,7 +334,6 @@ const Users = () => {
               <table className="modern-users-table">
                 <thead>
                   <tr>
-                    <th className="th-checkbox"><input type="checkbox" /></th>
                     <th>User</th>
                     <th>Role</th>
                     <th>Department</th>
@@ -345,14 +344,13 @@ const Users = () => {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan="7" className="text-center p-4">Loading...</td></tr>
+                    <tr><td colSpan="6" className="text-center p-4">Loading...</td></tr>
                   ) : users.map((user) => (
                     <tr
                       key={user._id}
                       className={selectedUserPermissions?._id === user._id ? 'selected-row' : ''}
                       onClick={() => setSelectedUserPermissions(user)}
                     >
-                      <td className="td-checkbox"><input type="checkbox" /></td>
                       <td>
                         <div className="user-profile-cell">
                           <div className="user-avatar">
@@ -387,13 +385,6 @@ const Users = () => {
                       </td>
                       <td>
                         <div className="row-actions">
-                          <button
-                            className="action-icon add"
-                            onClick={(e) => { e.stopPropagation(); handleQuickAdd(user); }}
-                            title="Quick Add Similar"
-                          >
-                            +
-                          </button>
                           <button className="action-icon edit" onClick={(e) => { e.stopPropagation(); handleEdit(user); }} title="Edit User">
                             <Pencil size={15} />
                           </button>

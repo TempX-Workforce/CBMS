@@ -39,6 +39,11 @@ const ApprovalsQueue = () => {
 
   const processAction = async () => {
     try {
+      if (actionType === 'reject' && !remarks.trim()) {
+        alert('Remarks are mandatory for rejection. Please provide a reason.');
+        return;
+      }
+
       if (actionType === 'verify') {
         await expenditureAPI.verifyExpenditure(selectedExpenditure._id, { remarks });
       } else if (actionType === 'approve') {
@@ -213,12 +218,15 @@ const ApprovalsQueue = () => {
             <div className="modal-body">
               <p>Are you sure you want to {actionType} <strong>{selectedExpenditure?.billNumber}</strong>?</p>
               <div className="form-group" style={{ marginTop: '1rem' }}>
-                <label className="form-label">Remarks</label>
+                <label className="form-label">
+                  Remarks {actionType === 'reject' && <span style={{ color: 'red' }}>*</span>}
+                </label>
                 <textarea
                   className="form-textarea"
                   rows="3"
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
+                  placeholder={actionType === 'reject' ? 'Reason for rejection is required' : 'Optional remarks'}
                 ></textarea>
               </div>
             </div>

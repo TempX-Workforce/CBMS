@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { allocationAPI, expenditureAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { DollarSign, CreditCard, Wallet, PieChart, CheckCircle, AlertTriangle, Receipt, Plus, List, Download } from 'lucide-react';
+import { IndianRupee, CreditCard, Wallet, PieChart, CheckCircle, AlertTriangle, Receipt, Plus, List, Download } from 'lucide-react';
 import './DepartmentDashboard.css';
 
 const DepartmentDashboard = () => {
@@ -28,9 +28,9 @@ const DepartmentDashboard = () => {
       setLoading(true);
 
       const [allocationsResponse, expendituresResponse, statsResponse] = await Promise.all([
-        allocationAPI.getAllocations({ departmentId: user.department }),
-        expenditureAPI.getExpenditures({ departmentId: user.department }),
-        allocationAPI.getAllocationStats({ departmentId: user.department })
+        allocationAPI.getAllocations({ department: user.department._id }),
+        expenditureAPI.getExpenditures({ department: user.department._id }),
+        allocationAPI.getAllocationStats({ department: user.department._id })
       ]);
 
       setAllocations(allocationsResponse.data.data.allocations);
@@ -217,8 +217,8 @@ const DepartmentDashboard = () => {
                     <tr key={allocation._id}>
                       <td data-label="Budget Head">
                         <div className="budget-head-info">
-                          <span className="head-name">{allocation.budgetHeadName}</span>
-                          <span className="head-code">{allocation.budgetHeadCode}</span>
+                          <span className="head-name">{allocation.budgetHead?.name || 'Unknown'}</span>
+                          <span className="head-code">{allocation.budgetHead?.code || '-'}</span>
                         </div>
                       </td>
                       <td data-label="Allocated" className="amount">{formatCurrency(allocation.allocatedAmount)}</td>
@@ -264,7 +264,7 @@ const DepartmentDashboard = () => {
                 <div className="expenditure-info">
                   <div className="bill-info">
                     <h4 className="bill-number">{expenditure.billNumber}</h4>
-                    <span className="budget-head">{expenditure.budgetHeadName}</span>
+                    <span className="budget-head">{expenditure.budgetHead?.name || 'Unknown'}</span>
                   </div>
                   <div className="expenditure-details">
                     <span className="party-name">{expenditure.partyName}</span>

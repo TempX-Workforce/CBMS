@@ -125,11 +125,12 @@ ${expenditureList}
 
                 // Log to audit trail
                 await AuditLog.create({
-                    action: 'REMINDER_SENT',
-                    performedBy: null, // System action
-                    targetModel: 'User',
+                    eventType: 'approval_reminder',
+                    actor: null, // System action
+                    actorRole: 'system',
+                    targetEntity: 'User',
                     targetId: user._id,
-                    changes: {
+                    details: {
                         recipientEmail: user.email,
                         pendingCount: expenditures.length,
                         thresholdDays

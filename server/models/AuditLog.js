@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { encrypt, decrypt } = require('../utils/encryption');
 
 const auditLogSchema = new mongoose.Schema({
   eventType: {
@@ -27,13 +28,16 @@ const auditLogSchema = new mongoose.Schema({
       'file_uploaded',
       'file_deleted',
       'report_generated',
-      'settings_updated'
+      'settings_updated',
+      'file_upload_blocked',
+      'file_upload_scanned',
+      'approval_reminder'
     ]
   },
   actor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false
   },
   actorRole: {
     type: String,
@@ -82,5 +86,37 @@ auditLogSchema.index({ targetEntity: 1, targetId: 1 });
 
 // TTL index to automatically delete logs older than 7 years (compliance requirement)
 auditLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 220752000 }); // 7 years
+
+// Pre-save hook to encrypt sensitive fields
+auditLogSchema.pre('save', function (next) {
+  // Only encrypt if modified
+  if (this.isModified('details')) {
+    this.details = encrypt(this.details);
+  }
+  if (this.isModified('previousValues')) {
+    this.previousValues = encrypt(this.previousValues);
+  }
+  if (this.isModified('newValues')) {
+    this.newValues = encrypt(this.newValues);
+  }
+  next();
+});
+
+// Post-init hook to decrypt sensitive fields when fetching from DB
+auditLogSchema.post('init', function (doc) {
+  if (doc.details) {
+    doc.details = decrypt(doc.details);
+  }
+  if (doc.previousValues) {
+    doc.previousValues = decrypt(doc.previousValues);
+  }
+  if (doc.newValues) {
+    doc.newValues = decrypt(doc.newValues);
+  }
+});
+
+// Also handle findByIdAndUpdate which bypasses 'save' hooks sometimes, 
+// but since we usually create AuditLogs (immutable), this is less of a concern.
+// However, ensure 'create' triggers 'save'.
 
 module.exports = mongoose.model('AuditLog', auditLogSchema);

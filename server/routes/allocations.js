@@ -16,7 +16,7 @@ const { verifyToken, authorize } = require('../middleware/auth');
 router.use(verifyToken);
 
 // All routes require office access or higher
-router.use(authorize('office', 'vice_principal', 'principal', 'admin'));
+router.use(authorize('office', 'vice_principal', 'principal', 'admin', 'hod', 'department'));
 
 router.get('/', getAllocations);
 router.get('/stats', getAllocationStats);

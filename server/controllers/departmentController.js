@@ -81,7 +81,8 @@ const getDepartmentById = async (req, res) => {
 // @access  Private/Admin
 const createDepartment = async (req, res) => {
   try {
-    const { name, code, description, hod } = req.body;
+    let { name, code, description, hod } = req.body;
+    if (!hod) hod = undefined;
 
     // Check if department with same name or code already exists
     const existingDept = await Department.findOne({
@@ -191,7 +192,7 @@ const updateDepartment = async (req, res) => {
     if (name) updateData.name = name;
     if (code) updateData.code = code;
     if (description !== undefined) updateData.description = description;
-    if (hod !== undefined) updateData.hod = hod;
+    if (hod !== undefined) updateData.hod = hod || null;
     if (isActive !== undefined) updateData.isActive = isActive;
 
     const previousValues = existingDept.toObject();
