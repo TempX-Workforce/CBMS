@@ -261,8 +261,55 @@ const cleanupOldFiles = (olderThanDays = 30) => {
   cleanupDirectory(uploadDir);
 };
 
+const profilePictureUpload = upload.single('profilePicture');
+
+const handleProfilePictureUpload = (req, res, next) => {
+  profilePictureUpload(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ success: false, message: 'File size too large. Max 10MB allowed.' });
+      }
+      return res.status(400).json({ success: false, message: err.message });
+    } else if (err) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
+
+    if (!req.file) {
+      return next();
+    }
+
+    try {
+      // Virus scan if scanner is active
+      if (clamScan) {
+        const result = await clamScan.is_infected(req.file.path);
+        if (result.is_infected) {
+          fs.unlinkSync(req.file.path);
+          return res.status(400).json({
+            success: false,
+            message: `Virus detected and file removed: ${result.viruses.join(', ')}`
+          });
+        }
+      }
+
+      req.uploadedFile = {
+        filename: req.file.filename,
+        path: req.file.path,
+        url: `/uploads/${req.body.departmentId || req.user?.department || 'general'}/${req.file.filename}`
+      };
+      next();
+    } catch (error) {
+      console.error('Profile picture processing error:', error);
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      res.status(500).json({ success: false, message: 'Error processing uploaded image' });
+    }
+  });
+};
+
 module.exports = {
   handleFileUpload,
+  handleProfilePictureUpload,
   serveFiles,
   deleteFile,
   cleanupOldFiles,

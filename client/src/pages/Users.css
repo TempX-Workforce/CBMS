@@ -298,82 +298,7 @@
   background-color: #fee2e2;
 }
 
-/* Permissions Footer Panel */
-.permissions-footer {
-  margin-top: 3rem;
-  padding: 2rem;
-  background-color: #f8fafc;
-  border-radius: 16px;
-  display: flex;
-  gap: 3rem;
-  align-items: flex-start;
-  position: relative;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
-}
-
-.permission-group {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  min-width: 250px;
-}
-
-.permission-group h4 {
-  font-size: 1rem;
-  color: #334155;
-  margin: 0 0 1.25rem 0;
-  font-weight: 700;
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 0.75rem;
-}
-
-.permission-check-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.permission-check-list label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  color: #64748b;
-  cursor: default;
-}
-
-.permission-check-list label.checked {
-  color: #10b981;
-  /* Green text when checked */
-  font-weight: 500;
-}
-
-.check-box {
-  width: 16px;
-  height: 16px;
-  border: 1px solid #cbd5e1;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
-
-.permission-check-list label.checked .check-box {
-  background-color: #10b981;
-  border-color: #10b981;
-}
-
-/* Pagination Info */
-.pagination-info {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  font-size: 0.85rem;
-  color: #94a3b8;
-  font-weight: 500;
-}
+/* Retired Footer Styles removed */
 
 /* Existing Modal Styles (Generic override or keep some logic) */
 .modal-overlay {
@@ -403,4 +328,43 @@
 
 .form-group label {
   color: #475569;
+}
+
+/* Modal Permissions Section */
+.modal-permissions-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.modal-permission-group {
+  margin-bottom: 1.5rem;
+}
+
+.modal-permission-group h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 0.75rem;
+}
+
+.modal-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #475569;
+  cursor: pointer;
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }

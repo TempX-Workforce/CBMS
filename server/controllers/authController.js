@@ -443,11 +443,53 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// @desc    Upload profile picture
+// @route   PUT /api/auth/profile/picture
+// @access  Private
+const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.uploadedFile) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const userId = req.user._id;
+    const profilePictureUrl = req.uploadedFile.url;
+
+    // Get current user to see if we need to delete old picture
+    const user = await User.findById(userId);
+    if (user.profilePicture) {
+      // Logic to delete old file could go here if needed
+    }
+
+    user.profilePicture = profilePictureUrl;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Profile picture uploaded successfully',
+      data: {
+        profilePicture: profilePictureUrl
+      }
+    });
+  } catch (error) {
+    console.error('Upload profile picture error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while uploading profile picture',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getProfile,
   updateProfile,
+  uploadProfilePicture,
   changePassword,
   logoutUser,
   forgotPassword,

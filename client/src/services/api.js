@@ -60,6 +60,7 @@ export const authAPI = {
   register: (userData) => api.post('/auth/register', userData),
   forgotPassword: (data) => api.post('/auth/forgot-password', data),
   resetPassword: (token, data) => api.post(`/auth/reset-password/${token}`, data),
+  uploadProfilePicture: (formData) => api.put('/auth/profile/picture', formData),
 };
 
 // Users API

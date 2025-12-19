@@ -24,6 +24,15 @@ const { initReminderService } = require('./services/reminderService');
 
 const app = express();
 
+// Comprehensive Request Logger for Debugging
+app.use((req, res, next) => {
+  console.log(`[HTTP] ${req.method} ${req.url}`);
+  if (req.url.includes('profile/picture')) {
+    console.log('  Headers:', JSON.stringify(req.headers, null, 2));
+  }
+  next();
+});
+
 // Middleware
 app.use(cors({
   origin: true,
@@ -58,7 +67,7 @@ const statusHandler = (req, res) => {
   res.json({
     success: true,
     message: 'CBMS Backend API is running!',
-    version: '1.0.2',
+    version: '1.0.3-DIAGNOSTIC',
     endpoints: {
       auth: '/api/auth',
       users: '/api/users',

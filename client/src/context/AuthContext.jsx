@@ -206,6 +206,27 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Upload profile picture
+  const uploadProfilePicture = async (formData) => {
+    try {
+      const response = await authAPI.uploadProfilePicture(formData);
+      const updatedUser = { ...state.user, profilePicture: response.data.data.profilePicture };
+
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      dispatch({
+        type: AUTH_ACTIONS.UPDATE_USER,
+        payload: updatedUser,
+      });
+
+      return { success: true, data: response.data.data };
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Picture upload failed';
+      return { success: false, error: errorMessage };
+    }
+  };
+
   // Clear error
   const clearError = useCallback(() => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
@@ -244,6 +265,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    uploadProfilePicture,
     changePassword,
     clearError,
     hasRole,

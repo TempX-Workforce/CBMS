@@ -16,7 +16,13 @@ const Users = () => {
     email: '',
     role: '',
     department: '',
-    isActive: true
+    isActive: true,
+    permissions: {
+      canApprove: false,
+      exportReports: false,
+      manageBudgets: false,
+      manageUsers: false
+    }
   });
   const [filters, setFilters] = useState({
     search: '',
@@ -25,8 +31,7 @@ const Users = () => {
     department: ''
   });
 
-  // New state for selected user permissions view
-  const [selectedUserPermissions, setSelectedUserPermissions] = useState(null);
+  // Removed selectedUserPermissions view state as permissions are now in modal
 
   const roleOptions = [
     { value: 'admin', label: 'Admin' },
@@ -54,10 +59,6 @@ const Users = () => {
 
       const response = await usersAPI.getUsers(params);
       setUsers(response.data.data.users);
-      // Select first user for permissions view by default if available
-      if (response.data.data.users.length > 0 && !selectedUserPermissions) {
-        setSelectedUserPermissions(response.data.data.users[0]);
-      }
       setError(null);
     } catch (err) {
       setError('Failed to fetch users');
@@ -78,10 +79,22 @@ const Users = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+
+    if (name.startsWith('permissions.')) {
+      const permKey = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [permKey]: checked
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    }
   };
 
   const handleFilterChange = (e) => {
@@ -101,7 +114,13 @@ const Users = () => {
       department: '',
       password: '',
       confirmPassword: '',
-      isActive: true
+      isActive: true,
+      permissions: {
+        canApprove: false,
+        exportReports: false,
+        manageBudgets: false,
+        manageUsers: false
+      }
     });
     setShowModal(true);
   };
@@ -142,7 +161,13 @@ const Users = () => {
       department: user.department || '',
       password: '',
       confirmPassword: '',
-      isActive: user.isActive
+      isActive: user.isActive,
+      permissions: user.permissions || {
+        canApprove: false,
+        exportReports: false,
+        manageBudgets: false,
+        manageUsers: false
+      }
     });
     setShowModal(true);
   };
@@ -161,7 +186,10 @@ const Users = () => {
   const closeModal = () => {
     setShowModal(false);
     setEditingUser(null);
-    setFormData({ name: '', email: '', role: '', department: '', password: '', confirmPassword: '', isActive: true });
+    setFormData({
+      name: '', email: '', role: '', department: '', password: '', confirmPassword: '', isActive: true,
+      permissions: { canApprove: false, exportReports: false, manageBudgets: false, manageUsers: false }
+    });
     setError(null);
   };
 
@@ -185,59 +213,11 @@ const Users = () => {
     return name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U';
   };
 
-  const getPermissions = (user) => {
-    // Return user-specific permissions if they exist, otherwise default based on role (or empty)
-    if (user.permissions && Object.keys(user.permissions).length > 0) {
-      return user.permissions;
-    }
-    // Fallback or default structure
-    return {
-      canApprove: false,
-      exportReports: false,
-      manageBudgets: false,
-      manageUsers: false,
-      superAdmin: false
-    };
-  };
-
-  const permissions = selectedUserPermissions ? getPermissions(selectedUserPermissions) : {};
-
-  const handlePermissionToggle = async (permissionKey) => {
-    if (!selectedUserPermissions) return;
-
-    const currentPermissions = selectedUserPermissions.permissions || {};
-    const updatedPermissions = {
-      ...currentPermissions,
-      [permissionKey]: !currentPermissions[permissionKey]
-    };
-
-    // Optimistic UI update
-    const updatedUser = { ...selectedUserPermissions, permissions: updatedPermissions };
-    setSelectedUserPermissions(updatedUser);
-
-    // Update in users list as well to reflect if we switch back and forth
-    setUsers(prevUsers => prevUsers.map(u =>
-      u._id === updatedUser._id ? updatedUser : u
-    ));
-
-    try {
-      await usersAPI.updateUser(selectedUserPermissions._id, { permissions: updatedPermissions });
-    } catch (err) {
-      console.error('Failed to update permission:', err);
-      setError('Failed to update permission');
-      // Revert on failure
-      fetchUsers();
-    }
-  };
-
   const handleStatusToggle = async (user) => {
     const updatedUser = { ...user, isActive: !user.isActive };
 
     // Optimistic UI update
     setUsers(users.map(u => u._id === user._id ? updatedUser : u));
-    if (selectedUserPermissions?._id === user._id) {
-      setSelectedUserPermissions(updatedUser);
-    }
 
     try {
       await usersAPI.updateUser(user._id, { isActive: !user.isActive });
@@ -258,7 +238,13 @@ const Users = () => {
       department: user.department || '',
       password: '',
       confirmPassword: '',
-      isActive: true
+      isActive: true,
+      permissions: {
+        canApprove: false,
+        exportReports: false,
+        manageBudgets: false,
+        manageUsers: false
+      }
     });
     setShowModal(true);
   };
@@ -268,8 +254,8 @@ const Users = () => {
       <div className="users-content-container">
 
         {/* Header Section */}
-        <PageHeader 
-          title="User Management" 
+        <PageHeader
+          title="User Management"
           subtitle="Manage system users and their permissions"
         >
           <button className="btn btn-primary btn-sm" onClick={handleAddUser}>
@@ -347,8 +333,6 @@ const Users = () => {
                   ) : users.map((user) => (
                     <tr
                       key={user._id}
-                      className={selectedUserPermissions?._id === user._id ? 'selected-row' : ''}
-                      onClick={() => setSelectedUserPermissions(user)}
                     >
                       <td>
                         <div className="user-profile-cell">
@@ -399,55 +383,6 @@ const Users = () => {
                 </tbody>
               </table>
             </div>
-
-            {/* Visual Permissions Footer/Panel */}
-            {selectedUserPermissions && (
-              <div className="permissions-footer">
-                <div className="permission-group">
-                  <h4>Permissions</h4>
-                  <div className="permission-check-list">
-                    <label className={permissions.canApprove ? 'checked' : ''}>
-                      <span className="check-box" onClick={() => handlePermissionToggle('canApprove')}>
-                        {permissions.canApprove && <Check size={12} />}
-                      </span>
-                      Can Approve
-                    </label>
-                    <label className={permissions.exportReports ? 'checked' : ''}>
-                      <span className="check-box" onClick={() => handlePermissionToggle('exportReports')}>
-                        {permissions.exportReports && <Check size={12} />}
-                      </span>
-                      Can Export Reports
-                    </label>
-                    <label className={permissions.manageBudgets ? 'checked' : ''}>
-                      <span className="check-box" onClick={() => handlePermissionToggle('manageBudgets')}>
-                        {permissions.manageBudgets && <Check size={12} />}
-                      </span>
-                      Manage Budgets
-                    </label>
-                  </div>
-                </div>
-                <div className="permission-group">
-                  <h4>Additional Access</h4>
-                  <div className="permission-check-list">
-                    <label className={permissions.manageUsers ? 'checked' : ''}>
-                      <span className="check-box" onClick={() => handlePermissionToggle('manageUsers')}>
-                        {permissions.manageUsers && <Check size={12} />}
-                      </span>
-                      Manage Users
-                    </label>
-                    <label className={permissions.superAdmin ? 'checked' : ''}>
-                      <span className="check-box" onClick={() => handlePermissionToggle('superAdmin')}>
-                        {permissions.superAdmin && <Check size={12} />}
-                      </span>
-                      Super Admin Access
-                    </label>
-                  </div>
-                </div>
-                <div className="pagination-info">
-                  <span>9600 / 1900</span> {/* Dummy data from image */}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -501,6 +436,56 @@ const Users = () => {
                     </div>
                   </>
                 )}
+
+                <div className="modal-permissions-section">
+                  <div className="modal-permission-group">
+                    <h4>Permissions</h4>
+                    <div className="modal-checkbox-grid">
+                      <label className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          name="permissions.canApprove"
+                          checked={formData.permissions.canApprove}
+                          onChange={handleInputChange}
+                        />
+                        Can Approve
+                      </label>
+                      <label className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          name="permissions.exportReports"
+                          checked={formData.permissions.exportReports}
+                          onChange={handleInputChange}
+                        />
+                        Can Export Reports
+                      </label>
+                      <label className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          name="permissions.manageBudgets"
+                          checked={formData.permissions.manageBudgets}
+                          onChange={handleInputChange}
+                        />
+                        Manage Budgets
+                      </label>
+                    </div>
+                  </div>
+                  <div className="modal-permission-group">
+                    <h4>Additional Access</h4>
+                    <div className="modal-checkbox-grid">
+                      <label className="checkbox-item">
+                        <input
+                          type="checkbox"
+                          name="permissions.manageUsers"
+                          checked={formData.permissions.manageUsers}
+                          onChange={handleInputChange}
+                        />
+                        Manage Users
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="modal-actions">
                   <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancel</button>
                   <button type="submit" className="btn btn-primary">{editingUser ? 'Update' : 'Create'}</button>

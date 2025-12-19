@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema({
     manageUsers: { type: Boolean, default: false },
     superAdmin: { type: Boolean, default: false }
   },
+  profilePicture: {
+    type: String,
+    default: ''
+  },
   lastLogin: {
     type: Date
   },

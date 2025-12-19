@@ -8,9 +8,11 @@ const {
   changePassword,
   logoutUser,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  uploadProfilePicture
 } = require('../controllers/authController');
 const { verifyToken } = require('../middleware/auth');
+const { handleProfilePictureUpload } = require('../middleware/fileUpload');
 
 // Public routes
 const { check, validationResult } = require('express-validator');
@@ -38,6 +40,10 @@ router.use(verifyToken); // All routes below require authentication
 
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
+router.put('/profile/picture', (req, res, next) => {
+  console.log('Incoming profile picture upload request');
+  next();
+}, handleProfilePictureUpload, uploadProfilePicture);
 router.put('/change-password', changePassword);
 router.post('/logout', logoutUser);
 

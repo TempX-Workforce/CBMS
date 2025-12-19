@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
-import { User, Mail, Briefcase, Building2, Calendar, Lock, Save, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Briefcase, Building2, Calendar, Lock, Save, AlertCircle, CheckCircle2, Eye, EyeOff, Camera, Loader2 } from 'lucide-react';
 import './Profile.css';
 
 const Profile = () => {
-    const { user, updateProfile: updateAuthProfile } = useAuth();
+    const { user, updateProfile: updateAuthProfile, uploadProfilePicture } = useAuth();
     const [loading, setLoading] = useState(false);
+    const [imageLoading, setImageLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [showPasswordForm, setShowPasswordForm] = useState(false);
+    const fileInputRef = useRef(null);
 
     const [profileData, setProfileData] = useState({
         name: '',
@@ -59,6 +61,47 @@ const Profile = () => {
             ...prev,
             [field]: !prev[field]
         }));
+    };
+
+    const handleImageClick = () => {
+        fileInputRef.current.click();
+    };
+
+    const handleImageChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+            setError('Please upload a valid image file (JPG, PNG)');
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            setError('File size too large. Max 5MB allowed.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('profilePicture', file);
+
+        setImageLoading(true);
+        setError(null);
+
+        try {
+            const result = await uploadProfilePicture(formData);
+            if (result.success) {
+                setSuccess('Profile picture updated!');
+                setTimeout(() => setSuccess(null), 3000);
+            } else {
+                setError(result.error);
+            }
+        } catch (err) {
+            setError('Failed to upload image');
+        } finally {
+            setImageLoading(false);
+        }
     };
 
     const handleProfileSubmit = async (e) => {
@@ -149,11 +192,53 @@ const Profile = () => {
         return roleLabels[role] || role;
     };
 
+    const getFullImageUrl = (path) => {
+        if (!path) return null;
+        if (path.startsWith('http')) return path;
+        const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        return `${apiBase}${path}`;
+    };
+
     return (
         <div className="profile-container">
-            <div className="profile-header">
-                <h1>My Profile</h1>
-                <p>Manage your account information and security settings</p>
+            <div className="profile-hero">
+                <div className="banner-area"></div>
+                <div className="hero-content">
+                    <div className="profile-avatar-wrapper">
+                        <div className="profile-avatar-container" onClick={handleImageClick}>
+                            {imageLoading ? (
+                                <div className="avatar-loading">
+                                    <Loader2 className="spinner" />
+                                </div>
+                            ) : (
+                                <div className="avatar-preview">
+                                    {user?.profilePicture ? (
+                                        <img src={getFullImageUrl(user.profilePicture)} alt="Profile" />
+                                    ) : (
+                                        <div className="avatar-initials">
+                                            {user?.name?.charAt(0).toUpperCase() || 'U'}
+                                        </div>
+                                    )}
+                                    <div className="avatar-overlay">
+                                        <Camera size={24} />
+                                        <span>Change Photo</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImageChange}
+                            accept="image/*"
+                            className="hidden-input"
+                        />
+                    </div>
+                    <div className="hero-text">
+                        <h1>{user?.name || 'User Profile'}</h1>
+                        <p className="hero-role">{getRoleLabel(user?.role)}</p>
+                    </div>
+                </div>
             </div>
 
             {error && (
@@ -170,110 +255,110 @@ const Profile = () => {
                 </div>
             )}
 
-            <div className="profile-content">
+            <div className="profile-grid">
                 {/* Profile Information Card */}
-                <div className="profile-card">
+                <div className="profile-card info-card">
                     <div className="card-header">
-                        <h2>Profile Information</h2>
-                        {!isEditing && (
+                        <h2>Personal Information</h2>
+                        {!isEditing ? (
                             <button
-                                className="btn btn-secondary"
+                                className="btn btn-secondary btn-sm"
                                 onClick={() => setIsEditing(true)}
                             >
-                                Edit Profile
+                                Edit Information
                             </button>
+                        ) : (
+                            <span className="editing-badge">Editing...</span>
                         )}
                     </div>
 
                     <div className="card-body">
-                        <div className="profile-avatar">
-                            <div className="avatar-circle">
-                                {user?.name?.charAt(0).toUpperCase() || 'U'}
-                            </div>
-                        </div>
-
                         <form onSubmit={handleProfileSubmit} className="profile-form">
-                            <div className="form-group">
-                                <label htmlFor="name">
-                                    <User size={18} />
-                                    Full Name
-                                </label>
-                                <input
-                                    type="text"
-                                    id="name"
-                                    name="name"
-                                    value={profileData.name}
-                                    onChange={handleProfileChange}
-                                    disabled={!isEditing}
-                                    required
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="email">
-                                    <Mail size={18} />
-                                    Email Address
-                                </label>
-                                <input
-                                    type="email"
-                                    id="email"
-                                    name="email"
-                                    value={profileData.email}
-                                    onChange={handleProfileChange}
-                                    disabled={!isEditing}
-                                    required
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label>
-                                    <Briefcase size={18} />
-                                    Role
-                                </label>
-                                <input
-                                    type="text"
-                                    value={getRoleLabel(user?.role)}
-                                    disabled
-                                    className="readonly-field"
-                                    readOnly
-                                />
-                            </div>
-
-                            {user?.department && (
-                                <div className="form-group">
-                                    <label>
-                                        <Building2 size={18} />
-                                        Department
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={user.department.name || user.department}
-                                        disabled
-                                        className="readonly-field"
-                                        readOnly
-                                    />
+                            <div className="form-grid">
+                                <div className="form-group full-width">
+                                    <label htmlFor="name">Full Name</label>
+                                    <div className="input-with-icon">
+                                        <User size={18} className="icon" />
+                                        <input
+                                            type="text"
+                                            id="name"
+                                            name="name"
+                                            value={profileData.name}
+                                            onChange={handleProfileChange}
+                                            disabled={!isEditing}
+                                            required
+                                            placeholder="Enter your full name"
+                                        />
+                                    </div>
                                 </div>
-                            )}
 
-                            <div className="form-group">
-                                <label>
-                                    <Calendar size={18} />
-                                    Last Login
-                                </label>
-                                <input
-                                    type="text"
-                                    value={user?.lastLogin ? new Date(user.lastLogin).toLocaleString('en-IN') : 'N/A'}
-                                    disabled
-                                    className="readonly-field"
-                                    readOnly
-                                />
+                                <div className="form-group full-width">
+                                    <label htmlFor="email">Email Address</label>
+                                    <div className="input-with-icon">
+                                        <Mail size={18} className="icon" />
+                                        <input
+                                            type="email"
+                                            id="email"
+                                            name="email"
+                                            value={profileData.email}
+                                            onChange={handleProfileChange}
+                                            disabled={!isEditing}
+                                            required
+                                            placeholder="Enter your email"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="form-group half-width">
+                                    <label>Role</label>
+                                    <div className="input-with-icon readonly">
+                                        <Briefcase size={18} className="icon" />
+                                        <input
+                                            type="text"
+                                            value={getRoleLabel(user?.role)}
+                                            readOnly
+                                        />
+                                    </div>
+                                </div>
+
+                                {user?.department && (
+                                    <div className="form-group half-width">
+                                        <label>Department</label>
+                                        <div className="input-with-icon readonly">
+                                            <Building2 size={18} className="icon" />
+                                            <input
+                                                type="text"
+                                                value={user.department.name || user.department}
+                                                readOnly
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="form-group full-width">
+                                    <label>Account Created / Last Login</label>
+                                    <div className="input-with-icon readonly">
+                                        <Calendar size={18} className="icon" />
+                                        <input
+                                            type="text"
+                                            value={user?.lastLogin ? new Date(user.lastLogin).toLocaleString('en-IN', {
+                                                day: 'numeric',
+                                                month: 'long',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            }) : 'Recently joined'}
+                                            readOnly
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             {isEditing && (
                                 <div className="form-actions">
                                     <button
                                         type="button"
-                                        className="btn btn-secondary"
+                                        className="btn btn-ghost"
                                         onClick={() => {
                                             setIsEditing(false);
                                             setProfileData({
@@ -283,15 +368,14 @@ const Profile = () => {
                                         }}
                                         disabled={loading}
                                     >
-                                        Cancel
+                                        Discard
                                     </button>
                                     <button
                                         type="submit"
                                         className="btn btn-primary"
                                         disabled={loading}
                                     >
-                                        <Save size={18} />
-                                        {loading ? 'Saving...' : 'Save Changes'}
+                                        {loading ? 'Saving Changes...' : 'Save Profile'}
                                     </button>
                                 </div>
                             )}
@@ -300,29 +384,31 @@ const Profile = () => {
                 </div>
 
                 {/* Password Change Card */}
-                <div className="profile-card">
+                <div className="profile-card security-card">
                     <div className="card-header">
-                        <h2>Security Settings</h2>
+                        <h2>Account Security</h2>
                     </div>
 
                     <div className="card-body">
                         {!showPasswordForm ? (
-                            <div className="password-prompt">
-                                <Lock size={48} className="lock-icon" />
-                                <p>Keep your account secure by regularly updating your password</p>
+                            <div className="security-intro">
+                                <div className="security-icon-circle">
+                                    <Lock size={32} />
+                                </div>
+                                <h3>Password Settings</h3>
+                                <p>Manage your account password and security status.</p>
                                 <button
-                                    className="btn btn-primary"
+                                    className="btn btn-outline-primary"
                                     onClick={() => setShowPasswordForm(true)}
                                 >
-                                    <Lock size={18} />
-                                    Change Password
+                                    Update Password
                                 </button>
                             </div>
                         ) : (
-                            <form onSubmit={handlePasswordSubmit} className="password-form">
+                            <form onSubmit={handlePasswordSubmit} className="password-form-upgraded">
                                 <div className="form-group">
                                     <label htmlFor="currentPassword">Current Password</label>
-                                    <div className="password-input-wrapper">
+                                    <div className="password-field">
                                         <input
                                             type={showPasswords.current ? 'text' : 'password'}
                                             id="currentPassword"
@@ -330,11 +416,12 @@ const Profile = () => {
                                             value={passwordData.currentPassword}
                                             onChange={handlePasswordChange}
                                             required
+                                            placeholder="••••••••"
                                         />
                                         <button
                                             type="button"
-                                            className="password-toggle"
                                             onClick={() => togglePasswordVisibility('current')}
+                                            className="toggle-btn"
                                         >
                                             {showPasswords.current ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
@@ -343,7 +430,7 @@ const Profile = () => {
 
                                 <div className="form-group">
                                     <label htmlFor="newPassword">New Password</label>
-                                    <div className="password-input-wrapper">
+                                    <div className="password-field">
                                         <input
                                             type={showPasswords.new ? 'text' : 'password'}
                                             id="newPassword"
@@ -352,21 +439,21 @@ const Profile = () => {
                                             onChange={handlePasswordChange}
                                             required
                                             minLength={6}
+                                            placeholder="Min. 6 characters"
                                         />
                                         <button
                                             type="button"
-                                            className="password-toggle"
                                             onClick={() => togglePasswordVisibility('new')}
+                                            className="toggle-btn"
                                         >
                                             {showPasswords.new ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                     </div>
-                                    <small>Minimum 6 characters</small>
                                 </div>
 
                                 <div className="form-group">
-                                    <label htmlFor="confirmPassword">Confirm New Password</label>
-                                    <div className="password-input-wrapper">
+                                    <label htmlFor="confirmPassword">Confirm Password</label>
+                                    <div className="password-field">
                                         <input
                                             type={showPasswords.confirm ? 'text' : 'password'}
                                             id="confirmPassword"
@@ -374,21 +461,22 @@ const Profile = () => {
                                             value={passwordData.confirmPassword}
                                             onChange={handlePasswordChange}
                                             required
+                                            placeholder="Confirm new password"
                                         />
                                         <button
                                             type="button"
-                                            className="password-toggle"
                                             onClick={() => togglePasswordVisibility('confirm')}
+                                            className="toggle-btn"
                                         >
                                             {showPasswords.confirm ? <EyeOff size={18} /> : <Eye size={18} />}
                                         </button>
                                     </div>
                                 </div>
 
-                                <div className="form-actions">
+                                <div className="form-actions-security">
                                     <button
                                         type="button"
-                                        className="btn btn-secondary"
+                                        className="btn btn-ghost btn-sm"
                                         onClick={() => {
                                             setShowPasswordForm(false);
                                             setPasswordData({
@@ -399,15 +487,14 @@ const Profile = () => {
                                         }}
                                         disabled={loading}
                                     >
-                                        Cancel
+                                        Back
                                     </button>
                                     <button
                                         type="submit"
-                                        className="btn btn-primary"
+                                        className="btn btn-primary btn-sm"
                                         disabled={loading}
                                     >
-                                        <Lock size={18} />
-                                        {loading ? 'Changing...' : 'Change Password'}
+                                        {loading ? 'Changing...' : 'Update Password'}
                                     </button>
                                 </div>
                             </form>
