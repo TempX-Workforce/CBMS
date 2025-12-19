@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { allocationAPI, expenditureAPI, reportAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { getCurrentFinancialYear, getPreviousFinancialYear } from '../utils/dateUtils';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { RefreshCw, AlertCircle, Wallet, TrendingUp, PiggyBank, Percent } from 'lucide-react';
 import './GraphicalDashboard.css';
@@ -13,6 +14,9 @@ const GraphicalDashboard = () => {
   const [yearComparison, setYearComparison] = useState(null);
   const [timeRange, setTimeRange] = useState('current');
   const [refreshInterval, setRefreshInterval] = useState(null);
+  
+  const currentFY = getCurrentFinancialYear();
+  const previousFY = getPreviousFinancialYear();
 
   useEffect(() => {
     fetchDashboardData();
@@ -30,10 +34,12 @@ const GraphicalDashboard = () => {
     try {
       setLoading(true);
 
+      const targetFY = timeRange === 'current' ? currentFY : previousFY;
+
       const [allocationResponse, expenditureResponse, reportResponse, comparisonReportResponse] = await Promise.all([
         allocationAPI.getAllocations({
           departmentId: user.role === 'department' ? user.department : undefined,
-          financialYear: timeRange === 'current' ? '2024-2025' : '2023-2024'
+          financialYear: targetFY
         }),
         expenditureAPI.getExpenditures({
           departmentId: user.role === 'department' ? user.department : undefined,
@@ -41,12 +47,12 @@ const GraphicalDashboard = () => {
         }),
         reportAPI.getDashboardReport({
           departmentId: user.role === 'department' ? user.department : undefined,
-          financialYear: timeRange === 'current' ? '2024-2025' : '2023-2024'
+          financialYear: targetFY
         }),
         // Fetch year comparison data for current year
         reportAPI.getDashboardReport({
           departmentId: user.role === 'department' ? user.department : undefined,
-          financialYear: '2024-2025',
+          financialYear: currentFY,
           includeComparison: 'true'
         })
       ]);
@@ -394,8 +400,8 @@ const GraphicalDashboard = () => {
             <div className="time-range-selector">
               <label>Time Range:</label>
               <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
-                <option value="current">Current Year (2024-2025)</option>
-                <option value="previous">Previous Year (2023-2024)</option>
+                <option value="current">Current Year ({currentFY})</option>
+                <option value="previous">Previous Year ({previousFY})</option>
               </select>
             </div>
             <button className="refresh-btn" onClick={fetchDashboardData}>

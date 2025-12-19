@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { departmentsAPI } from '../services/api';
+import { departmentsAPI, usersAPI } from '../services/api';
 import Tooltip from '../components/Tooltip/Tooltip';
 import PageHeader from '../components/Common/PageHeader';
 import StatCard from '../components/Common/StatCard';
@@ -18,11 +18,13 @@ const Departments = () => {
     description: '',
     hod: ''
   });
+  const [hodUsers, setHodUsers] = useState([]);
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
     fetchDepartments();
     fetchStats();
+    fetchHODs();
   }, []);
 
   const fetchDepartments = async () => {
@@ -48,6 +50,17 @@ const Departments = () => {
     }
   };
 
+  const fetchHODs = async () => {
+    try {
+      const response = await usersAPI.getUsersByRole('hod');
+      if (response.data.success) {
+        setHodUsers(response.data.data.users);
+      }
+    } catch (err) {
+      console.error('Error fetching HODs:', err);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -59,10 +72,13 @@ const Departments = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const submitData = { ...formData };
+      if (!submitData.hod) submitData.hod = null;
+
       if (editingDepartment) {
-        await departmentsAPI.updateDepartment(editingDepartment._id, formData);
+        await departmentsAPI.updateDepartment(editingDepartment._id, submitData);
       } else {
-        await departmentsAPI.createDepartment(formData);
+        await departmentsAPI.createDepartment(submitData);
       }
 
       setShowModal(false);
@@ -285,8 +301,11 @@ const Departments = () => {
                   onChange={handleInputChange}
                 >
                   <option value="">Select HOD (Optional)</option>
-                  <option value="1">Test Admin (admin@test.com)</option>
-                  <option value="2">Test User (user@test.com)</option>
+                  {hodUsers.map(user => (
+                    <option key={user._id} value={user._id}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
                 </select>
               </div>
 

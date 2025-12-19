@@ -14,6 +14,7 @@ const { verifyToken, authorize } = require('../middleware/auth');
 router.use(verifyToken);
 
 // Allow all authorized users to view budget heads
+router.get('/stats', getBudgetHeadStats);
 router.get('/', getBudgetHeads);
 router.get('/:id', getBudgetHeadById);
 

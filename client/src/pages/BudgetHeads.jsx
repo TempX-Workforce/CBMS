@@ -203,7 +203,7 @@ const BudgetHeads = () => {
           />
           <StatCard
             title="Categories"
-            value={Object.keys(stats.categoryStats).length}
+            value={stats.byCategory ? Object.keys(stats.byCategory).length : 0}
             icon={<IndianRupee size={24} />}
             color="var(--info)"
           />

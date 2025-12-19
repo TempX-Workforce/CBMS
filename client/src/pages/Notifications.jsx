@@ -152,7 +152,6 @@ const Notifications = () => {
       'expenditure_submitted': '#17a2b8',
       'expenditure_approved': '#28a745',
       'expenditure_rejected': '#dc3545',
-      'expenditure_rejected': '#dc3545',
       'budget_exhaustion_warning': '#ffc107',
       'approval_reminder': '#17a2b8',
       'attachments_missing': '#dc3545',

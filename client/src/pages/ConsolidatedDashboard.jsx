@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { allocationAPI, expenditureAPI, departmentsAPI, reportAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { getCurrentFinancialYear, getPreviousFinancialYear } from '../utils/dateUtils';
 import { IndianRupee, CreditCard, Wallet, PieChart, List, Receipt, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 import './ConsolidatedDashboard.css';
 
@@ -16,7 +17,18 @@ const ConsolidatedDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState('');
-  const [selectedFinancialYear, setSelectedFinancialYear] = useState('2024-2025');
+  
+  const currentFY = getCurrentFinancialYear();
+  const previousFY = getPreviousFinancialYear();
+  // Simple logic to get a year before previous for the dropdown
+  const getFYMinus2 = () => {
+      const [start] = previousFY.split('-');
+      const year = parseInt(start) - 1;
+      return `${year}-${year + 1}`;
+  };
+  const fyMinus2 = getFYMinus2();
+
+  const [selectedFinancialYear, setSelectedFinancialYear] = useState(currentFY);
 
   useEffect(() => {
     fetchData();
@@ -156,9 +168,9 @@ const ConsolidatedDashboard = () => {
             onChange={(e) => setSelectedFinancialYear(e.target.value)}
             className="filter-select"
           >
-            <option value="2024-2025">2024-2025</option>
-            <option value="2023-2024">2023-2024</option>
-            <option value="2022-2023">2022-2023</option>
+            <option value={currentFY}>{currentFY}</option>
+            <option value={previousFY}>{previousFY}</option>
+            <option value={fyMinus2}>{fyMinus2}</option>
           </select>
         </div>
       </div>
