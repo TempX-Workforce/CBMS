@@ -7,7 +7,8 @@ const {
   updateAllocation,
   deleteAllocation,
   getAllocationStats,
-  bulkCreateAllocations
+  bulkCreateAllocations,
+  getYearComparison
 } = require('../controllers/allocationController');
 const { verifyToken, authorize } = require('../middleware/auth');
 
@@ -19,6 +20,8 @@ router.use(authorize('office', 'vice_principal', 'principal', 'admin'));
 
 router.get('/', getAllocations);
 router.get('/stats', getAllocationStats);
+// Add specific routes before parameterized routes
+router.get('/year-comparison', getYearComparison);
 router.get('/:id', getAllocationById);
 router.post('/', createAllocation);
 router.post('/bulk', bulkCreateAllocations);

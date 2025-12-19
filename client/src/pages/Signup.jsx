@@ -267,7 +267,7 @@ const Signup = () => {
         <div className="signup-footer">
           <p>
             Already have an account?{' '}
-            <Link to="/cbms/login" className="login-link">
+            <Link to="/login" className="login-link">
               Sign in here
             </Link>
           </p>

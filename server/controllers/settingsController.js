@@ -149,8 +149,38 @@ const resetSettings = async (req, res) => {
     }
 };
 
+// @desc    Get public settings
+// @route   GET /api/settings/public
+// @access  Private
+const getPublicSettings = async (req, res) => {
+    try {
+        const publicKeys = ['budget_overspend_policy', 'system_name', 'fiscal_year_start_month'];
+        const settings = await Settings.find({ key: { $in: publicKeys } });
+
+        const settingsObj = {};
+        settings.forEach(setting => {
+            settingsObj[setting.key] = setting.value;
+        });
+
+        // Set defaults if not found
+        if (!settingsObj.budget_overspend_policy) settingsObj.budget_overspend_policy = 'disallow';
+
+        res.json({
+            success: true,
+            data: settingsObj
+        });
+    } catch (error) {
+        console.error('Get public settings error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while fetching public settings'
+        });
+    }
+};
+
 module.exports = {
     getSettings,
+    getPublicSettings,
     updateSettings,
     getSystemInfo,
     resetSettings

@@ -30,7 +30,6 @@ const departmentSchema = new mongoose.Schema({
 });
 
 // Index for better query performance
-departmentSchema.index({ name: 1 });
-departmentSchema.index({ code: 1 });
+
 
 module.exports = mongoose.model('Department', departmentSchema);

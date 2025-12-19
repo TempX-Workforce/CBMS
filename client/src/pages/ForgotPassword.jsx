@@ -46,7 +46,7 @@ const ForgotPassword = () => {
                         The link will expire in 1 hour.
                     </p>
                     <div className="action-links">
-                        <Link to="/cbms/login" className="btn btn-primary">
+                        <Link to="/login" className="btn btn-primary">
                             <ArrowLeft size={18} />
                             Back to Login
                         </Link>
@@ -115,7 +115,7 @@ const ForgotPassword = () => {
                 </form>
 
                 <div className="back-to-login">
-                    <Link to="/cbms/login">
+                    <Link to="/login">
                         <ArrowLeft size={16} />
                         Back to Login
                     </Link>

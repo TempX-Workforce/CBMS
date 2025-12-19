@@ -1,5 +1,6 @@
 const Department = require('../models/Department');
 const User = require('../models/User');
+const { recordAuditLog } = require('../utils/auditService');
 
 // @desc    Get all departments
 // @route   GET /api/departments
@@ -112,6 +113,16 @@ const createDepartment = async (req, res) => {
       hod
     });
 
+    // Log the creation
+    await recordAuditLog({
+      eventType: 'department_created',
+      req,
+      targetEntity: 'Department',
+      targetId: department._id,
+      details: { name, code },
+      newValues: department
+    });
+
     const populatedDepartment = await Department.findById(department._id)
       .populate('hod', 'name email');
 
@@ -183,11 +194,24 @@ const updateDepartment = async (req, res) => {
     if (hod !== undefined) updateData.hod = hod;
     if (isActive !== undefined) updateData.isActive = isActive;
 
+    const previousValues = existingDept.toObject();
+
     const department = await Department.findByIdAndUpdate(
       departmentId,
       updateData,
       { new: true, runValidators: true }
     ).populate('hod', 'name email');
+
+    // Log the update
+    await recordAuditLog({
+      eventType: 'department_updated',
+      req,
+      targetEntity: 'Department',
+      targetId: departmentId,
+      details: { updatedFields: Object.keys(updateData) },
+      previousValues,
+      newValues: department
+    });
 
     res.json({
       success: true,
@@ -227,6 +251,16 @@ const deleteDepartment = async (req, res) => {
         message: 'Department not found'
       });
     }
+
+    // Log the deletion
+    await recordAuditLog({
+      eventType: 'department_deleted',
+      req,
+      targetEntity: 'Department',
+      targetId: departmentId,
+      details: { name: department.name, code: department.code },
+      previousValues: department
+    });
 
     res.json({
       success: true,

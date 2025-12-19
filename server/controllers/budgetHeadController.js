@@ -1,4 +1,5 @@
 const BudgetHead = require('../models/BudgetHead');
+const { recordAuditLog } = require('../utils/auditService');
 
 // @desc    Get all budget heads
 // @route   GET /api/budget-heads
@@ -80,22 +81,34 @@ const getBudgetHeadById = async (req, res) => {
 // @access  Private/Admin
 const createBudgetHead = async (req, res) => {
   try {
-    const { name, description, category } = req.body;
+    const { name, code, description, category } = req.body;
 
-    // Check if budget head with same name already exists
-    const existingBudgetHead = await BudgetHead.findOne({ name });
+    // Check if budget head with same name or code already exists
+    const existingBudgetHead = await BudgetHead.findOne({ $or: [{ name }, { code }] });
     if (existingBudgetHead) {
+      const field = existingBudgetHead.name === name ? 'name' : 'code';
       return res.status(400).json({
         success: false,
-        message: 'Budget head with this name already exists'
+        message: `Budget head with this ${field} already exists`
       });
     }
 
     const budgetHead = await BudgetHead.create({
       name,
+      code,
       description,
       category,
       createdBy: req.user._id
+    });
+
+    // Log the creation
+    await recordAuditLog({
+      eventType: 'budget_head_created',
+      req,
+      targetEntity: 'BudgetHead',
+      targetId: budgetHead._id,
+      details: { name, code, category },
+      newValues: budgetHead
     });
 
     const populatedBudgetHead = await BudgetHead.findById(budgetHead._id)
@@ -150,15 +163,29 @@ const updateBudgetHead = async (req, res) => {
 
     const updateData = {};
     if (name) updateData.name = name;
+    if (req.body.code) updateData.code = req.body.code;
     if (description !== undefined) updateData.description = description;
     if (category) updateData.category = category;
     if (isActive !== undefined) updateData.isActive = isActive;
+
+    const previousValues = existingBudgetHead.toObject();
 
     const budgetHead = await BudgetHead.findByIdAndUpdate(
       budgetHeadId,
       updateData,
       { new: true, runValidators: true }
     ).populate('createdBy', 'name email');
+
+    // Log the update
+    await recordAuditLog({
+      eventType: 'budget_head_updated',
+      req,
+      targetEntity: 'BudgetHead',
+      targetId: budgetHeadId,
+      details: { updatedFields: Object.keys(updateData) },
+      previousValues,
+      newValues: budgetHead
+    });
 
     res.json({
       success: true,
@@ -199,6 +226,16 @@ const deleteBudgetHead = async (req, res) => {
         message: 'Budget head not found'
       });
     }
+
+    // Log the deletion
+    await recordAuditLog({
+      eventType: 'budget_head_deleted',
+      req,
+      targetEntity: 'BudgetHead',
+      targetId: budgetHeadId,
+      details: { name: budgetHead.name, code: budgetHead.code },
+      previousValues: budgetHead
+    });
 
     res.json({
       success: true,

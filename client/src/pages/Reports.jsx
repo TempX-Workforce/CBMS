@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { reportAPI, departmentsAPI, budgetHeadsAPI, usersAPI } from '../services/api';
-import { Receipt, DollarSign, PieChart, ClipboardList, Download } from 'lucide-react';
+import { Receipt, IndianRupee, PieChart, ClipboardList, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 import './Reports.css';
 
 const Reports = () => {
@@ -28,13 +31,15 @@ const Reports = () => {
 
   const fetchMasterData = async () => {
     try {
-      const [departmentsRes, budgetHeadsRes] = await Promise.all([
+      const [departmentsRes, budgetHeadsRes, usersRes] = await Promise.all([
         departmentsAPI.getDepartments(),
-        budgetHeadsAPI.getBudgetHeads()
+        budgetHeadsAPI.getBudgetHeads(),
+        usersAPI.getUsers({ limit: 1000 })
       ]);
 
       setDepartments(departmentsRes.data.data.departments);
       setBudgetHeads(budgetHeadsRes.data.data.budgetHeads);
+      setUsers(usersRes.data.data.users);
     } catch (err) {
       console.error('Error fetching master data:', err);
     }
@@ -90,6 +95,10 @@ const Reports = () => {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
+      } else if (filters.format === 'excel') {
+        handleExcelExport(response.data.data);
+      } else if (filters.format === 'pdf') {
+        handlePDFExport(response.data.data);
       } else {
         setReportData(response.data.data);
       }
@@ -99,6 +108,85 @@ const Reports = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExcelExport = (data) => {
+    let exportData = [];
+    let fileName = `${reportType}-report.xlsx`;
+
+    if (reportType === 'expenditures') {
+      exportData = data.expenditures.map(exp => ({
+        'Bill Number': exp.billNumber,
+        'Bill Date': formatDate(exp.billDate),
+        'Amount': exp.billAmount,
+        'Party Name': exp.partyName,
+        'Department': exp.department.name,
+        'Budget Head': exp.budgetHead.name,
+        'Status': exp.status,
+        'Details': exp.expenseDetails
+      }));
+    } else if (reportType === 'allocations') {
+      exportData = data.allocations.map(alloc => ({
+        'Financial Year': alloc.financialYear,
+        'Department': alloc.department.name,
+        'Budget Head': alloc.budgetHead.name,
+        'Allocated Amount': alloc.allocatedAmount,
+        'Spent Amount': alloc.spentAmount,
+        'Remaining Amount': alloc.remainingAmount,
+        'Utilization %': Math.round((alloc.spentAmount / alloc.allocatedAmount) * 100)
+      }));
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Report');
+    XLSX.writeFile(wb, fileName);
+  };
+
+  const handlePDFExport = (data) => {
+    const doc = new jsPDF();
+    const fileName = `${reportType}-report.pdf`;
+
+    doc.setFontSize(18);
+    doc.text(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`, 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+
+    let columns = [];
+    let rows = [];
+
+    if (reportType === 'expenditures') {
+      columns = ['Bill #', 'Date', 'Amount', 'Party', 'Dept', 'Status'];
+      rows = data.expenditures.map(exp => [
+        exp.billNumber,
+        formatDate(exp.billDate),
+        formatCurrency(exp.billAmount),
+        exp.partyName,
+        exp.department.name,
+        exp.status
+      ]);
+    } else if (reportType === 'allocations') {
+      columns = ['FY', 'Dept', 'Budget Head', 'Allocated', 'Spent', 'Remaining'];
+      rows = data.allocations.map(alloc => [
+        alloc.financialYear,
+        alloc.department.name,
+        alloc.budgetHead.name,
+        formatCurrency(alloc.allocatedAmount),
+        formatCurrency(alloc.spentAmount),
+        formatCurrency(alloc.remainingAmount)
+      ]);
+    }
+
+    doc.autoTable({
+      head: [columns],
+      body: rows,
+      startY: 40,
+      theme: 'grid',
+      headStyles: { fillColor: [79, 70, 229] }
+    });
+
+    doc.save(fileName);
   };
 
   const formatCurrency = (amount) => {
@@ -400,7 +488,7 @@ const Reports = () => {
               className={`type-btn ${reportType === 'allocations' ? 'active' : ''}`}
               onClick={() => handleReportTypeChange('allocations')}
             >
-              <Dollar size={24} />
+              <IndianRupee size={24} />
               Allocation Report
             </button>
             <button
@@ -434,6 +522,8 @@ const Reports = () => {
               >
                 <option value="json">JSON (View)</option>
                 <option value="csv">CSV (Download)</option>
+                <option value="excel">Excel (Download)</option>
+                <option value="pdf">PDF (Download)</option>
               </select>
             </div>
 

@@ -19,7 +19,8 @@ import {
   PlusCircle,
   Files,
   GraduationCap,
-  Menu
+  Menu,
+  TrendingUp
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -55,6 +56,8 @@ const Sidebar = ({ isOpen, onClose, isExpanded, onToggleExpand }) => {
           { path: '/allocations', label: 'Allocations', icon: <ClipboardList size={20} /> },
           { path: '/approvals', label: 'Approvals', icon: <CheckSquare size={20} /> },
           { path: '/reports', label: 'Reports', icon: <FileText size={20} /> },
+          { path: '/consolidated-view', label: 'Consolidated View', icon: <TrendingUp size={20} /> },
+          { path: '/year-comparison', label: 'Year Comparison', icon: <LineChart size={20} /> },
         ];
       case 'department':
         return [
@@ -74,7 +77,8 @@ const Sidebar = ({ isOpen, onClose, isExpanded, onToggleExpand }) => {
           ...baseItems,
           { path: '/approvals', label: 'Approvals', icon: <CheckSquare size={20} /> },
           { path: '/reports', label: 'Reports', icon: <FileText size={20} /> },
-          { path: '/consolidated-view', label: 'Consolidated View', icon: <LineChart size={20} /> },
+          { path: '/consolidated-view', label: 'Consolidated View', icon: <TrendingUp size={20} /> },
+          { path: '/year-comparison', label: 'Year Comparison', icon: <LineChart size={20} /> },
         ];
       case 'auditor':
         return [
@@ -89,38 +93,38 @@ const Sidebar = ({ isOpen, onClose, isExpanded, onToggleExpand }) => {
 
   return (
     <>
-      <div 
-        className={`mobile-overlay ${isOpen ? 'show' : ''}`} 
+      <div
+        className={`mobile-overlay ${isOpen ? 'show' : ''}`}
         onClick={onClose}
       />
 
       <aside className={`sidebar ${isOpen ? 'open' : ''} ${isExpanded ? 'expanded' : ''}`}>
         <div className="sidebar-header">
-           <Tooltip text={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"} position="right">
-             <button className="sidebar-toggle-btn" onClick={toggleSidebar}>
-               <div className="sidebar-logo-icon">
-                 {isExpanded ? <Menu size={24} color="white" /> : <GraduationCap size={24} color="white" />}
-               </div>
-             </button>
-           </Tooltip>
-           
-           <div className="sidebar-logo-text-container">
-              <div className="sidebar-logo-text">CBMS</div>
-              <div className="sidebar-subtitle">Finance Manager</div>
-           </div>
+          <Tooltip text={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"} position="right">
+            <button className="sidebar-toggle-btn" onClick={toggleSidebar}>
+              <div className="sidebar-logo-icon">
+                {isExpanded ? <Menu size={24} color="white" /> : <GraduationCap size={24} color="white" />}
+              </div>
+            </button>
+          </Tooltip>
+
+          <div className="sidebar-logo-text-container">
+            <div className="sidebar-logo-text">CBMS</div>
+            <div className="sidebar-subtitle">Finance Manager</div>
+          </div>
         </div>
 
         <nav className="sidebar-nav">
           {getNavigationItems().map((item) => (
-            <Tooltip 
-              key={item.path} 
-              text={!isExpanded ? item.label : ''} 
+            <Tooltip
+              key={item.path}
+              text={!isExpanded ? item.label : ''}
               position="right"
               className="w-full"
             >
               <NavLink
                 to={item.path}
-                className={({ isActive }) => 
+                className={({ isActive }) =>
                   `nav-item ${isActive ? 'active' : ''}`
                 }
                 onClick={() => window.innerWidth < 1024 && onClose()}

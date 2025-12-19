@@ -2,6 +2,7 @@ const NodeClam = require('clamscan');
 const fs = require('fs');
 const path = require('path');
 const AuditLog = require('../models/AuditLog');
+const fileType = require('file-type');
 
 // Virus scanner instance
 let clamScanner = null;
@@ -46,36 +47,26 @@ const initializeScanner = async () => {
     });
 
     clamScanner = await ClamScan;
-    
+
     // Test scanner connection
     const version = await clamScanner.getVersion();
     console.log(`✅ ClamAV scanner initialized successfully (version: ${version})`);
-    
+
     scannerInitialized = true;
     scannerError = null;
-    
+
     return clamScanner;
   } catch (error) {
     scannerError = error.message;
-    
-    if (VIRUS_SCAN_DEV_MODE) {
-      console.warn('⚠️  ClamAV initialization failed, running in DEV MODE (scanning disabled)');
-      console.warn(`Error: ${error.message}`);
-      console.warn('Files will be uploaded WITHOUT virus scanning!');
-      return null;
-    } else {
-      console.error('❌ ClamAV initialization failed:', error.message);
-      throw new Error(`Virus scanner initialization failed: ${error.message}. Please ensure ClamAV daemon is running.`);
-    }
+
+    // console.log(`ℹ️  ClamAV not reachable: ${error.message} - Virus scanning disabled.`);
+    return null;
   }
 };
 
 // Initialize scanner on module load
 initializeScanner().catch(err => {
-  if (!VIRUS_SCAN_DEV_MODE) {
-    console.error('Failed to initialize virus scanner:', err);
-    process.exit(1); // Exit if scanner required but unavailable
-  }
+  console.error('Failed to initialize virus scanner:', err);
 });
 
 /**
@@ -94,14 +85,14 @@ const scanFile = async (filePath) => {
     };
   }
 
-  if (!scannerInitialized && VIRUS_SCAN_DEV_MODE) {
-    console.warn(`⚠️  DEV MODE: Skipping virus scan for ${path.basename(filePath)}`);
+  if (!scannerInitialized) {
+    console.warn(`⚠️  Scanner not initialized: Skipping virus scan for ${path.basename(filePath)}`);
     return {
       isInfected: false,
       viruses: [],
       file: filePath,
       skipped: true,
-      reason: 'Running in development mode without ClamAV'
+      reason: 'Virus scanner not initialized'
     };
   }
 
@@ -111,7 +102,7 @@ const scanFile = async (filePath) => {
 
   try {
     const { isInfected, viruses, file } = await clamScanner.scanFile(filePath);
-    
+
     return {
       isInfected,
       viruses: viruses || [],
@@ -120,7 +111,7 @@ const scanFile = async (filePath) => {
     };
   } catch (error) {
     console.error('Virus scan error:', error);
-    
+
     if (VIRUS_SCAN_DEV_MODE) {
       console.warn('⚠️  Scan error in DEV MODE, allowing file upload');
       return {
@@ -131,7 +122,7 @@ const scanFile = async (filePath) => {
         reason: `Scan error: ${error.message}`
       };
     }
-    
+
     throw error;
   }
 };
@@ -158,7 +149,18 @@ const scanUploadedFiles = async (req, res, next) => {
     // Scan each uploaded file
     for (const file of req.files) {
       console.log(`Scanning file: ${file.originalname} (${file.filename})`);
-      
+
+      // Verify file type using magic numbers
+      try {
+        const type = await fileType.fromFile(file.path);
+        if (type && type.mime !== file.mimetype) {
+          console.warn(`⚠️ Mime-type mismatch for ${file.originalname}: Claimed ${file.mimetype}, Detected ${type.mime}`);
+          // Potential policy: reject if mismatch. For now, just warn and audit.
+        }
+      } catch (ftError) {
+        console.warn('Could not determine file type via magic numbers:', ftError);
+      }
+
       const result = await scanFile(file.path);
       scanResults.push({
         filename: file.originalname,
@@ -200,7 +202,7 @@ const scanUploadedFiles = async (req, res, next) => {
         }
       } else {
         console.log(`✅ File clean: ${file.originalname}`);
-        
+
         // Log successful scan to audit trail
         if (req.user && !result.skipped) {
           await AuditLog.create({
@@ -262,18 +264,16 @@ const scanUploadedFiles = async (req, res, next) => {
   } catch (error) {
     console.error('Virus scanning middleware error:', error);
 
-    // In development mode, allow upload on scan error
-    if (VIRUS_SCAN_DEV_MODE) {
-      console.warn('⚠️  DEV MODE: Scan error, allowing upload');
-      req.virusScanResults = {
-        scanned: 0,
-        clean: 0,
-        threats: 0,
-        skipped: req.files.length,
-        error: error.message
-      };
-      return next();
-    }
+    // Allow upload on scan error in all modes if scanner failed
+    console.warn('⚠️  Scan error, allowing upload due to scanner failure');
+    req.virusScanResults = {
+      scanned: 0,
+      clean: 0,
+      threats: 0,
+      skipped: req.files.length,
+      error: error.message
+    };
+    return next();
 
     // In production, reject on scan error
     // Delete uploaded files

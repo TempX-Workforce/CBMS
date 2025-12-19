@@ -90,93 +90,123 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Budget Cards */
-.budget-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.budget-card {
+/* Budget Table */
+.budget-table-container {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-backdrop);
   border: var(--glass-border);
   border-radius: var(--radius-xl);
-  padding: 1.5rem;
   box-shadow: var(--glass-shadow);
-  transition: all 0.3s ease;
+  overflow: hidden;
+  margin-bottom: 2rem;
 }
 
-.budget-card:hover {
-  transform: translateY(-5px);
-  background: var(--glass-bg-hover);
+.budget-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.budget-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.5rem;
-}
-
-.budget-head-name {
-  font-size: 1.1rem;
+.budget-table th {
+  text-align: left;
+  padding: 1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.budget-table td {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-light);
   color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  vertical-align: middle;
 }
 
-.budget-head-code {
-  background: var(--primary-light);
-  color: var(--primary);
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-md);
-  font-size: 0.75rem;
+.budget-table tr:last-child td {
+  border-bottom: none;
+}
+
+.budget-table tr:hover td {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.budget-head-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.head-name {
   font-weight: 700;
+  font-size: 1rem;
+}
+
+.head-code {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
   font-family: monospace;
 }
 
-.amount-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-}
-
-.amount-row .label {
-  color: var(--text-secondary);
-}
-
-.amount-row .amount {
+.budget-table .amount {
+  font-family: var(--font-mono);
   font-weight: 600;
-  color: var(--text-primary);
 }
 
-.utilization-bar {
-  position: relative;
+.budget-table .spent {
+  color: var(--danger);
+}
+
+.budget-table .remaining {
+  color: var(--success);
+}
+
+.utilization-cell {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 150px;
+}
+
+.utilization-bar-small {
+  flex: 1;
+  height: 8px;
   background: var(--border-light);
   border-radius: 999px;
-  height: 1rem;
   overflow: hidden;
-  margin-bottom: 1rem;
-  margin-top: 1rem;
 }
 
-.utilization-fill {
-  background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+.utilization-fill-small {
+  height: 100%;
   border-radius: 999px;
 }
 
-.utilization-text {
-  font-size: 0.7rem;
+.utilization-text-small {
+  font-size: 0.75rem;
   font-weight: 700;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
+  color: var(--text-secondary);
+  min-width: 35px;
+}
+
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.status-tag.available {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.status-tag.exhausted {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
 }
 
 /* Expenditure List */

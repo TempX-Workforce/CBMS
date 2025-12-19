@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Department = require('../models/Department');
+const { recordAuditLog } = require('../utils/auditService');
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -85,6 +86,16 @@ const createUser = async (req, res) => {
       department: ['department', 'hod'].includes(role) ? department : undefined,
       isActive: isActive !== undefined ? isActive : true,
       permissions: permissions || {}
+    });
+
+    // Log the creation
+    await recordAuditLog({
+      eventType: 'user_created',
+      req,
+      targetEntity: 'User',
+      targetId: user._id,
+      details: { name, email, role },
+      newValues: user
     });
 
     res.status(201).json({
@@ -190,11 +201,24 @@ const updateUser = async (req, res) => {
     if (isActive !== undefined) updateData.isActive = isActive;
     if (permissions) updateData.permissions = permissions;
 
+    const previousValues = existingUser.toObject();
+
     const user = await User.findByIdAndUpdate(
       userId,
       updateData,
       { new: true, runValidators: true }
     ).populate('department', 'name code');
+
+    // Log the update
+    await recordAuditLog({
+      eventType: 'user_updated',
+      req,
+      targetEntity: 'User',
+      targetId: userId,
+      details: { updatedFields: Object.keys(updateData) },
+      previousValues,
+      newValues: user
+    });
 
     res.json({
       success: true,
@@ -233,6 +257,16 @@ const deleteUser = async (req, res) => {
         message: 'User not found'
       });
     }
+
+    // Log the deletion
+    await recordAuditLog({
+      eventType: 'user_deleted',
+      req,
+      targetEntity: 'User',
+      targetId: userId,
+      details: { name: user.name, email: user.email },
+      previousValues: user
+    });
 
     res.json({
       success: true,

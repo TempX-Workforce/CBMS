@@ -3,42 +3,71 @@ const Allocation = require('../models/Allocation');
 const Department = require('../models/Department');
 const BudgetHead = require('../models/BudgetHead');
 const AuditLog = require('../models/AuditLog');
-const { 
-  notifyExpenditureSubmission, 
-  notifyExpenditureApproval, 
-  notifyExpenditureRejection 
+const Settings = require('../models/Settings');
+const {
+  notifyExpenditureSubmission,
+  notifyExpenditureApproval,
+  notifyExpenditureRejection,
+  notifyBudgetExhaustion
 } = require('../utils/notificationService');
+const { recordAuditLog } = require('../utils/auditService');
+
+const getSetting = async (key, defaultValue) => {
+  try {
+    const setting = await Settings.findOne({ key });
+    return setting ? setting.value : defaultValue;
+  } catch (error) {
+    console.error(`Error fetching setting ${key}:`, error);
+    return defaultValue;
+  }
+};
 
 // @desc    Get all expenditures
 // @route   GET /api/expenditures
 // @access  Private
 const getExpenditures = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      department, 
-      budgetHead, 
-      status, 
+    const {
+      page = 1,
+      limit = 10,
+      department,
+      budgetHead,
+      status,
       financialYear,
       search,
-      submittedBy 
+      submittedBy
     } = req.query;
 
     const query = {};
 
     // Apply filters based on user role
-    if (req.user.role === 'department' || req.user.role === 'hod') {
-      query.department = req.user.department;
-    } else if (department) {
-      query.department = department;
+    const isApprovalRole = ['hod', 'office', 'vice_principal', 'principal'].includes(req.user.role);
+
+    if (status === 'pending_approval' && isApprovalRole) {
+      // Logic for "My Approvals" queue
+      if (req.user.role === 'hod') {
+        query.status = 'pending';
+        query.department = req.user.department;
+      } else if (req.user.role === 'office') {
+        // Office can see 'pending' to verify, and 'verified' to approve
+        query.status = { $in: ['pending', 'verified'] };
+      } else if (req.user.role === 'vice_principal' || req.user.role === 'principal') {
+        query.status = 'verified'; // Prin/VP approve what HOD/Office verified
+      }
+    } else {
+      // Standard filtering
+      if (req.user.role === 'department' || req.user.role === 'hod') {
+        query.department = req.user.department;
+      } else if (department) {
+        query.department = department;
+      }
+
+      if (status) query.status = status;
     }
 
     if (budgetHead) query.budgetHead = budgetHead;
-    if (status) query.status = status;
     if (financialYear) query.financialYear = financialYear;
     if (submittedBy) query.submittedBy = submittedBy;
-
     if (search) {
       query.$or = [
         { billNumber: { $regex: search, $options: 'i' } },
@@ -158,23 +187,20 @@ const submitExpenditure = async (req, res) => {
       financialYear
     }).session(session);
 
-    if (!allocation) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        success: false,
-        message: 'No budget allocation found for this department and budget head'
-      });
-    }
-
     // Check if bill amount exceeds remaining budget
     const remainingAmount = allocation.allocatedAmount - allocation.spentAmount;
+    const overspendPolicy = await getSetting('budget_overspend_policy', 'disallow');
+
     if (parseFloat(billAmount) > remainingAmount) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        success: false,
-        message: `Bill amount (₹${parseFloat(billAmount).toLocaleString()}) exceeds remaining budget (₹${remainingAmount.toLocaleString()})`,
-        remainingBudget: remainingAmount
-      });
+      if (overspendPolicy === 'disallow') {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: `Bill amount (₹${parseFloat(billAmount).toLocaleString()}) exceeds remaining budget (₹${remainingAmount.toLocaleString()})`,
+          remainingBudget: remainingAmount
+        });
+      }
+      // If policy is 'warn' or 'allow', we proceed but can flag it if needed
     }
 
     // Check if bill number already exists for this department
@@ -210,10 +236,9 @@ const submitExpenditure = async (req, res) => {
     await session.commitTransaction();
 
     // Log the submission
-    await AuditLog.create({
+    await recordAuditLog({
       eventType: 'expenditure_submitted',
-      actor: req.user._id,
-      actorRole: req.user.role,
+      req,
       targetEntity: 'Expenditure',
       targetId: expenditure[0]._id,
       details: {
@@ -221,7 +246,8 @@ const submitExpenditure = async (req, res) => {
         billAmount: parseFloat(billAmount),
         partyName,
         department: req.user.department
-      }
+      },
+      newValues: expenditure[0]
     });
 
     const populatedExpenditure = await Expenditure.findById(expenditure[0]._id)
@@ -271,11 +297,25 @@ const approveExpenditure = async (req, res) => {
     }
 
     // Check if expenditure is in pending or verified status
+    // Office can approve verified items
+    // Prin/VP can approve verified items
+    // Office can ALSO approve pending items if they act as first-level?
+    // Requirement says: Pending -> Verified -> Approved
     if (!['pending', 'verified'].includes(expenditure.status)) {
       await session.abortTransaction();
       return res.status(400).json({
         success: false,
         message: 'Expenditure is not in a state that can be approved'
+      });
+    }
+
+    // Role check for approval
+    const allowedApprovalRoles = ['office', 'vice_principal', 'principal'];
+    if (!allowedApprovalRoles.includes(req.user.role)) {
+      await session.abortTransaction();
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to approve expenditures'
       });
     }
 
@@ -295,17 +335,43 @@ const approveExpenditure = async (req, res) => {
     }
 
     // Check if approval would exceed budget
-    const newSpentAmount = allocation.spentAmount + expenditure.billAmount;
-    if (newSpentAmount > allocation.allocatedAmount) {
+    const remainingAmount = allocation.allocatedAmount - allocation.spentAmount;
+    const overspendPolicy = await getSetting('budget_overspend_policy', 'disallow');
+
+    if (expenditure.billAmount > remainingAmount && overspendPolicy === 'disallow') {
       await session.abortTransaction();
       return res.status(400).json({
         success: false,
-        message: 'Approval would exceed allocated budget'
+        message: 'Approval would exceed allocated budget, and overspend is disallowed.'
       });
     }
 
+    // Store previous values for audit log
+    const previousState = expenditure.toObject();
+
+    // Role-based logic for approval
+    let newStatus = 'approved';
+    const amount = expenditure.billAmount;
+
+    // Vice Principal threshold check (₹50,000)
+    if (req.user.role === 'vice_principal') {
+      if (amount > 50000) {
+        await session.abortTransaction();
+        return res.status(403).json({
+          success: false,
+          message: 'Vice Principal can only approve expenditures up to ₹50,000. This requires Principal approval.'
+        });
+      }
+    }
+
+    // Ensure sequencing: verified -> approved
+    if (expenditure.status === 'pending') {
+      // If still pending, we allow approval but it counts as both verification and approval
+      // Or we can enforce verification first. Let's allow for 'Office' to do both if needed.
+    }
+
     // Update expenditure status and add approval step
-    expenditure.status = 'approved';
+    expenditure.status = newStatus;
     expenditure.approvalSteps.push({
       approver: req.user._id,
       role: req.user.role,
@@ -316,17 +382,45 @@ const approveExpenditure = async (req, res) => {
 
     await expenditure.save({ session });
 
-    // Update allocation spent amount
-    allocation.spentAmount = newSpentAmount;
-    await allocation.save({ session });
+    // Update allocation spent amount atomically
+    // We re-check the condition using a query for row-level locking behavior in Mongoose/MongoDB
+    const updateResult = await Allocation.findOneAndUpdate(
+      {
+        _id: allocation._id,
+        // If policy is disallow, ensure we don't exceed budget in this atomic step
+        ...(overspendPolicy === 'disallow' ? {
+          $expr: { $lte: [{ $add: ['$spentAmount', expenditure.billAmount] }, '$allocatedAmount'] }
+        } : {})
+      },
+      { $inc: { spentAmount: expenditure.billAmount } },
+      { session, new: true }
+    );
+
+    if (!updateResult) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'Budget exceeded during concurrent approval attempt or allocation not found.'
+      });
+    }
+
+    const newSpentAmount = updateResult.spentAmount;
 
     await session.commitTransaction();
 
+    // Send notifications
+    await notifyExpenditureApproval(populatedExpenditure, req.user);
+
+    // Check for budget exhaustion and notify if > 90%
+    const updatedAllocation = await Allocation.findById(allocation._id).populate('department budgetHead');
+    if (updatedAllocation) {
+      await notifyBudgetExhaustion(updatedAllocation);
+    }
+
     // Log the approval
-    await AuditLog.create({
+    await recordAuditLog({
       eventType: 'expenditure_approved',
-      actor: req.user._id,
-      actorRole: req.user.role,
+      req,
       targetEntity: 'Expenditure',
       targetId: expenditureId,
       details: {
@@ -334,17 +428,10 @@ const approveExpenditure = async (req, res) => {
         billAmount: expenditure.billAmount,
         remarks,
         newSpentAmount
-      }
+      },
+      previousValues: previousState,
+      newValues: populatedExpenditure
     });
-
-    const populatedExpenditure = await Expenditure.findById(expenditureId)
-      .populate('department', 'name code')
-      .populate('budgetHead', 'name category')
-      .populate('submittedBy', 'name email')
-      .populate('approvalSteps.approver', 'name email role');
-
-    // Send notifications
-    await notifyExpenditureApproval(populatedExpenditure, req.user);
 
     res.json({
       success: true,
@@ -366,7 +453,7 @@ const approveExpenditure = async (req, res) => {
 
 // @desc    Reject expenditure
 // @route   PUT /api/expenditures/:id/reject
-// @access  Private/Office/VicePrincipal/Principal
+// @access  Private/Office/VicePrincipal/Principal/HOD
 const rejectExpenditure = async (req, res) => {
   try {
     const { remarks } = req.body;
@@ -387,14 +474,19 @@ const rejectExpenditure = async (req, res) => {
       });
     }
 
-    // Check if expenditure is in pending or verified status
-    if (!['pending', 'verified'].includes(expenditure.status)) {
+    // Check if expenditure is in a state that can be rejected
+    // For HOD: pending
+    // For Prin/VP: pending or verified
+    // For Office: approved
+    const allowedStatuses = ['pending', 'verified', 'approved'];
+    if (!allowedStatuses.includes(expenditure.status)) {
       return res.status(400).json({
         success: false,
         message: 'Expenditure is not in a state that can be rejected'
       });
     }
 
+    const previousState = expenditure.toObject();
     // Update expenditure status and add rejection step
     expenditure.status = 'rejected';
     expenditure.approvalSteps.push({
@@ -408,17 +500,14 @@ const rejectExpenditure = async (req, res) => {
     await expenditure.save();
 
     // Log the rejection
-    await AuditLog.create({
+    await recordAuditLog({
       eventType: 'expenditure_rejected',
-      actor: req.user._id,
-      actorRole: req.user.role,
+      req,
       targetEntity: 'Expenditure',
       targetId: expenditureId,
-      details: {
-        billNumber: expenditure.billNumber,
-        billAmount: expenditure.billAmount,
-        remarks: remarks.trim()
-      }
+      details: { remarks },
+      previousValues: previousState,
+      newValues: expenditure
     });
 
     const populatedExpenditure = await Expenditure.findById(expenditureId)
@@ -445,6 +534,102 @@ const rejectExpenditure = async (req, res) => {
   }
 };
 
+// @desc    Finalize expenditure
+// @route   PUT /api/expenditures/:id/finalize
+// @access  Private/Office
+const finalizeExpenditure = async (req, res) => {
+  const session = await Expenditure.startSession();
+  session.startTransaction();
+
+  try {
+    const { remarks } = req.body;
+    const expenditureId = req.params.id;
+
+    const expenditure = await Expenditure.findById(expenditureId).session(session);
+    if (!expenditure) {
+      await session.abortTransaction();
+      return res.status(404).json({
+        success: false,
+        message: 'Expenditure not found'
+      });
+    }
+
+    // Can only finalize if it's already approved
+    if (expenditure.status !== 'approved') {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'Expenditure must be approved before it can be finalized'
+      });
+    }
+
+    // Get allocation
+    const allocation = await Allocation.findOne({
+      department: expenditure.department,
+      budgetHead: expenditure.budgetHead,
+      financialYear: expenditure.financialYear
+    }).session(session);
+
+    if (!allocation) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'Allocation not found'
+      });
+    }
+
+    // Update expenditure status to finalized
+    expenditure.status = 'finalized';
+    expenditure.approvalSteps.push({
+      approver: req.user._id,
+      role: req.user.role,
+      decision: 'finalize',
+      remarks: remarks || '',
+      timestamp: new Date()
+    });
+
+    await expenditure.save({ session });
+
+    await session.commitTransaction();
+
+    // Log the finalization
+    await AuditLog.create({
+      eventType: 'expenditure_finalized',
+      actor: req.user._id,
+      actorRole: req.user.role,
+      targetEntity: 'Expenditure',
+      targetId: expenditureId,
+      details: {
+        billNumber: expenditure.billNumber,
+        billAmount: expenditure.billAmount,
+        remarks
+      }
+    });
+
+    const populatedExpenditure = await Expenditure.findById(expenditureId)
+      .populate('department', 'name code')
+      .populate('budgetHead', 'name category')
+      .populate('submittedBy', 'name email')
+      .populate('approvalSteps.approver', 'name email role');
+
+    res.json({
+      success: true,
+      message: 'Expenditure finalized successfully',
+      data: { expenditure: populatedExpenditure }
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error('Finalize expenditure error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while finalizing expenditure',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
 // @desc    Verify expenditure (HOD)
 // @route   PUT /api/expenditures/:id/verify
 // @access  Private/HOD
@@ -461,11 +646,18 @@ const verifyExpenditure = async (req, res) => {
       });
     }
 
-    // Check if expenditure belongs to HOD's department
-    if (expenditure.department.toString() !== req.user.department.toString()) {
+    // Check permissions
+    if (req.user.role === 'hod') {
+      if (expenditure.department.toString() !== req.user.department.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only verify expenditures from your department'
+        });
+      }
+    } else if (req.user.role !== 'office') {
       return res.status(403).json({
         success: false,
-        message: 'You can only verify expenditures from your department'
+        message: 'Only HOD or Office can verify expenditures'
       });
     }
 
@@ -626,7 +818,7 @@ const getExpenditureStats = async (req, res) => {
     const query = {};
     if (financialYear) query.financialYear = financialYear;
     if (department) query.department = department;
-    
+
     // Apply department filter for department users
     if (req.user.role === 'department' || req.user.role === 'hod') {
       query.department = req.user.department;
@@ -693,6 +885,7 @@ module.exports = {
   approveExpenditure,
   rejectExpenditure,
   verifyExpenditure,
+  finalizeExpenditure,
   resubmitExpenditure,
   getExpenditureStats
 };

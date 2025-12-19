@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { expenditureAPI } from '../services/api';
 import Tooltip from '../components/Tooltip/Tooltip';
 import { Check, X, Search, FileText } from 'lucide-react';
 import './ApprovalsQueue.css';
 
 const ApprovalsQueue = () => {
+  const { user } = useAuth();
   const [expenditures, setExpenditures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedExpenditure, setSelectedExpenditure] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [actionType, setActionType] = useState('');
   const [remarks, setRemarks] = useState('');
-  const [filters, setFilters] = useState({ search: '', status: 'pending' });
+  const [filters, setFilters] = useState({ search: '', status: 'pending_approval' });
 
   useEffect(() => {
     fetchExpenditures();
@@ -37,7 +39,9 @@ const ApprovalsQueue = () => {
 
   const processAction = async () => {
     try {
-      if (actionType === 'approve') {
+      if (actionType === 'verify') {
+        await expenditureAPI.verifyExpenditure(selectedExpenditure._id, { remarks });
+      } else if (actionType === 'approve') {
         await expenditureAPI.approveExpenditure(selectedExpenditure._id, { remarks });
       } else {
         await expenditureAPI.rejectExpenditure(selectedExpenditure._id, { remarks });
@@ -47,6 +51,7 @@ const ApprovalsQueue = () => {
       fetchExpenditures();
     } catch (err) {
       console.error(err);
+      alert(err.response?.data?.message || 'Error processing action');
     }
   };
 
@@ -58,7 +63,7 @@ const ApprovalsQueue = () => {
         <h1 className="page-title">Approvals</h1>
         <div className="queue-stats">
           <div className="stat-badge pending">
-            <span>Pending: {expenditures.filter(e => e.status === 'pending').length}</span>
+            <span>Needs Attention: {expenditures.length}</span>
           </div>
         </div>
       </div>
@@ -67,9 +72,9 @@ const ApprovalsQueue = () => {
         <div className="filter-group">
           <div className="form-input" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Search size={18} color="#9ca3af" />
-            <input 
-              type="text" 
-              placeholder="Search by Bill Number or Department..." 
+            <input
+              type="text"
+              placeholder="Search by Bill Number or Department..."
               value={filters.search}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
               style={{ border: 'none', outline: 'none', width: '100%' }}
@@ -77,14 +82,15 @@ const ApprovalsQueue = () => {
           </div>
         </div>
         <div className="filter-group" style={{ maxWidth: '200px' }}>
-          <select 
+          <select
             className="form-select"
             value={filters.status}
             onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
           >
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
+            <option value="pending_approval">Pending My Approval</option>
+            <option value="pending">Submitted (Pending Verification)</option>
+            <option value="verified">Verified (Pending Approval)</option>
+            <option value="approved">Approved / Deduction Recorded</option>
             <option value="rejected">Rejected</option>
           </select>
         </div>
@@ -124,21 +130,68 @@ const ApprovalsQueue = () => {
                   </span>
                 </td>
                 <td>
-                  {exp.status === 'pending' && (
-                    <div className="action-buttons">
-                      <Tooltip text="Approve" position="top">
-                        <button className="btn-icon approve" onClick={() => handleAction(exp, 'approve')}>
-                          <Check size={16} />
-                        </button>
-                      </Tooltip>
-                      <Tooltip text="Reject" position="top">
-                        <button className="btn-icon reject" onClick={() => handleAction(exp, 'reject')}>
-                          <X size={16} />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  )}
-                  {exp.status !== 'pending' && <span className="date-text">-</span>}
+                  <div className="action-buttons">
+                    {/* HOD Action: Verify or Reject */}
+                    {user?.role === 'hod' && exp.status === 'pending' && (
+                      <>
+                        <Tooltip text="Verify" position="top">
+                          <button className="btn-icon approve" onClick={() => handleAction(exp, 'verify')}>
+                            <Check size={16} />
+                          </button>
+                        </Tooltip>
+                        <Tooltip text="Reject" position="top">
+                          <button className="btn-icon reject" onClick={() => handleAction(exp, 'reject')}>
+                            <X size={16} />
+                          </button>
+                        </Tooltip>
+                      </>
+                    )}
+
+                    {/* VP/Principal Action: Approve or Reject */}
+                    {['vice_principal', 'principal'].includes(user?.role) && (exp.status === 'verified' || exp.status === 'pending') && (
+                      <>
+                        <Tooltip text="Approve" position="top">
+                          <button className="btn-icon approve" onClick={() => handleAction(exp, 'approve')}>
+                            <Check size={16} />
+                          </button>
+                        </Tooltip>
+                        <Tooltip text="Reject" position="top">
+                          <button className="btn-icon reject" onClick={() => handleAction(exp, 'reject')}>
+                            <X size={16} />
+                          </button>
+                        </Tooltip>
+                      </>
+                    )}
+
+                    {/* Office Action: Verify/Approve or Reject */}
+                    {user?.role === 'office' && (
+                      <>
+                        {exp.status === 'pending' && (
+                          <Tooltip text="Verify" position="top">
+                            <button className="btn-icon approve" onClick={() => handleAction(exp, 'verify')}>
+                              <Check size={16} />
+                            </button>
+                          </Tooltip>
+                        )}
+                        {exp.status === 'verified' && (
+                          <Tooltip text="Approve (Deduct)" position="top">
+                            <button className="btn-icon approve" onClick={() => handleAction(exp, 'approve')}>
+                              <Check size={16} />
+                            </button>
+                          </Tooltip>
+                        )}
+                        {['pending', 'verified'].includes(exp.status) && (
+                          <Tooltip text="Reject" position="top">
+                            <button className="btn-icon reject" onClick={() => handleAction(exp, 'reject')}>
+                              <X size={16} />
+                            </button>
+                          </Tooltip>
+                        )}
+                      </>
+                    )}
+
+                    {['approved', 'rejected'].includes(exp.status) && <span className="date-text">-</span>}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -150,14 +203,18 @@ const ApprovalsQueue = () => {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h3>{actionType === 'approve' ? 'Approve Expenditure' : 'Reject Expenditure'}</h3>
+              <h3>
+                {actionType === 'verify' && 'Verify Expenditure'}
+                {actionType === 'approve' && 'Approve Expenditure'}
+                {actionType === 'reject' && 'Reject Expenditure'}
+              </h3>
               <button onClick={() => setShowModal(false)}><X size={20} /></button>
             </div>
             <div className="modal-body">
               <p>Are you sure you want to {actionType} <strong>{selectedExpenditure?.billNumber}</strong>?</p>
               <div className="form-group" style={{ marginTop: '1rem' }}>
                 <label className="form-label">Remarks</label>
-                <textarea 
+                <textarea
                   className="form-textarea"
                   rows="3"
                   value={remarks}
@@ -167,11 +224,11 @@ const ApprovalsQueue = () => {
             </div>
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button 
+              <button
                 className={`btn ${actionType === 'approve' ? 'btn-primary' : 'btn-danger'}`}
                 onClick={processAction}
               >
-                Confirm {actionType === 'approve' ? 'Approval' : 'Rejection'}
+                Confirm {actionType.charAt(0).toUpperCase() + actionType.slice(1)}
               </button>
             </div>
           </div>

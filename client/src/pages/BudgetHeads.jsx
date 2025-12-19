@@ -3,7 +3,7 @@ import { budgetHeadsAPI } from '../services/api';
 import Tooltip from '../components/Tooltip/Tooltip';
 import PageHeader from '../components/Common/PageHeader';
 import StatCard from '../components/Common/StatCard';
-import { Plus, Pencil, Trash2, X, DollarSign } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, IndianRupee } from 'lucide-react';
 import './BudgetHeads.css';
 
 const BudgetHeads = () => {
@@ -26,16 +26,13 @@ const BudgetHeads = () => {
   });
 
   const categories = [
-    'Academic',
-    'Infrastructure',
-    'Personnel',
-    'Equipment',
-    'Operations',
-    'Research',
-    'Administrative',
-    'Student Services',
-    'Marketing',
-    'Other'
+    'academic',
+    'infrastructure',
+    'lab_equipment',
+    'events',
+    'maintenance',
+    'operations',
+    'other'
   ];
 
   useEffect(() => {
@@ -169,8 +166,8 @@ const BudgetHeads = () => {
 
   return (
     <div className="budget-heads-container">
-      <PageHeader 
-        title="Budget Heads Management" 
+      <PageHeader
+        title="Budget Heads Management"
         subtitle="Manage and allocate budget categories"
       >
         <button className="btn btn-primary" onClick={openModal}>
@@ -186,28 +183,28 @@ const BudgetHeads = () => {
 
       {stats && (
         <div className="stats-grid">
-          <StatCard 
-            title="Total Budget Heads" 
-            value={stats.totalBudgetHeads} 
-            icon={<DollarSign size={24} />} 
+          <StatCard
+            title="Total Budget Heads"
+            value={stats.totalBudgetHeads}
+            icon={<IndianRupee size={24} />}
             color="var(--primary)"
           />
-          <StatCard 
-            title="Active Budget Heads" 
-            value={stats.activeBudgetHeads} 
-            icon={<DollarSign size={24} />} 
+          <StatCard
+            title="Active Budget Heads"
+            value={stats.activeBudgetHeads}
+            icon={<IndianRupee size={24} />}
             color="var(--success)"
           />
-          <StatCard 
-            title="Inactive Budget Heads" 
-            value={stats.inactiveBudgetHeads} 
-            icon={<DollarSign size={24} />} 
+          <StatCard
+            title="Inactive Budget Heads"
+            value={stats.inactiveBudgetHeads}
+            icon={<IndianRupee size={24} />}
             color="var(--warning)" // or error/gray
           />
-          <StatCard 
-            title="Categories" 
-            value={Object.keys(stats.categoryStats).length} 
-            icon={<DollarSign size={24} />} 
+          <StatCard
+            title="Categories"
+            value={Object.keys(stats.categoryStats).length}
+            icon={<IndianRupee size={24} />}
             color="var(--info)"
           />
         </div>
@@ -313,7 +310,7 @@ const BudgetHeads = () => {
       {budgetHeads.length === 0 && (
         <div className="no-budget-heads">
           <div className="no-budget-heads-icon">
-            <DollarSign size={48} />
+            <IndianRupee size={48} />
           </div>
           <h3>No Budget Heads Found</h3>
           <p>No budget heads found matching the current filters.</p>

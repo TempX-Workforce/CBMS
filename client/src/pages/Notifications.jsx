@@ -126,7 +126,9 @@ const Notifications = () => {
       'expenditure_submitted': 'fas fa-paper-plane',
       'expenditure_approved': 'fas fa-check-circle',
       'expenditure_rejected': 'fas fa-times-circle',
-      'budget_warning': 'fas fa-exclamation-triangle',
+      'budget_exhaustion_warning': 'fas fa-exclamation-triangle',
+      'approval_reminder': 'fas fa-clock',
+      'attachments_missing': 'fas fa-paperclip',
       'system_announcement': 'fas fa-bullhorn',
       'user_created': 'fas fa-user-plus',
       'user_updated': 'fas fa-user-edit',
@@ -150,7 +152,10 @@ const Notifications = () => {
       'expenditure_submitted': '#17a2b8',
       'expenditure_approved': '#28a745',
       'expenditure_rejected': '#dc3545',
-      'budget_warning': '#ffc107',
+      'expenditure_rejected': '#dc3545',
+      'budget_exhaustion_warning': '#ffc107',
+      'approval_reminder': '#17a2b8',
+      'attachments_missing': '#dc3545',
       'system_announcement': '#6f42c1',
       'user_created': '#20c997',
       'user_updated': '#fd7e14',
@@ -249,7 +254,9 @@ const Notifications = () => {
             <option value="expenditure_submitted">Expenditure Submitted</option>
             <option value="expenditure_approved">Expenditure Approved</option>
             <option value="expenditure_rejected">Expenditure Rejected</option>
-            <option value="budget_warning">Budget Warning</option>
+            <option value="budget_exhaustion_warning">Budget Exhaustion Warning</option>
+            <option value="approval_reminder">Approval Reminder</option>
+            <option value="attachments_missing">Attachments Missing</option>
             <option value="system_announcement">System Announcement</option>
           </select>
         </div>

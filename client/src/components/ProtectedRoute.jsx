@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children, requiredRoles = null }) => {
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    return <Navigate to="/cbms/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // Check role-based access if required roles are specified

@@ -17,7 +17,7 @@ const approvalStepSchema = new mongoose.Schema({
   },
   remarks: {
     type: String,
-    required: function() {
+    required: function () {
       return this.decision === 'reject';
     },
     trim: true
@@ -80,7 +80,7 @@ const expenditureSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'verified', 'approved', 'rejected'],
+    enum: ['pending', 'verified', 'approved', 'finalized', 'rejected'],
     default: 'pending'
   },
   currentStep: {
@@ -122,11 +122,11 @@ expenditureSchema.index({ department: 1, status: 1 });
 expenditureSchema.index({ department: 1, financialYear: 1 });
 
 // Pre-save middleware to set financial year based on bill date
-expenditureSchema.pre('save', function(next) {
+expenditureSchema.pre('save', function (next) {
   if (this.billDate && !this.financialYear) {
     const year = this.billDate.getFullYear();
     const month = this.billDate.getMonth() + 1; // 0-indexed
-    
+
     // Financial year runs from April to March
     if (month >= 4) {
       this.financialYear = `${year}-${year + 1}`;

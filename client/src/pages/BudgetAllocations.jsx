@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { allocationAPI, departmentsAPI, budgetHeadsAPI } from '../services/api';
 import Tooltip from '../components/Tooltip/Tooltip';
-import { Plus, DollarSign, CreditCard, Wallet, PieChart, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, IndianRupee, CreditCard, Wallet, PieChart, Pencil, Trash2, X } from 'lucide-react';
 import './BudgetAllocations.css';
 
 const BudgetAllocations = () => {
@@ -38,8 +38,8 @@ const BudgetAllocations = () => {
       // Fetch allocations with filters
       const allocationParams = {};
       if (filters.search) allocationParams.search = filters.search;
-      if (filters.departmentId) allocationParams.departmentId = filters.departmentId;
-      if (filters.budgetHeadId) allocationParams.budgetHeadId = filters.budgetHeadId;
+      if (filters.departmentId) allocationParams.department = filters.departmentId;
+      if (filters.budgetHeadId) allocationParams.budgetHead = filters.budgetHeadId;
       if (filters.financialYear) allocationParams.financialYear = filters.financialYear;
 
       const [allocationsResponse, departmentsResponse, budgetHeadsResponse, statsResponse] = await Promise.all([
@@ -106,8 +106,8 @@ const BudgetAllocations = () => {
   const handleEdit = (allocation) => {
     setEditingAllocation(allocation);
     setFormData({
-      departmentId: allocation.departmentId,
-      budgetHeadId: allocation.budgetHeadId,
+      department: allocation.departmentId,
+      budgetHead: allocation.budgetHeadId,
       allocatedAmount: allocation.allocatedAmount.toString(),
       financialYear: allocation.financialYear,
       remarks: allocation.remarks || ''
@@ -190,7 +190,7 @@ const BudgetAllocations = () => {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon">
-              <DollarSign size={32} />
+              <IndianRupee size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">₹{stats.summary.totalAllocated.toLocaleString()}</div>
@@ -353,7 +353,7 @@ const BudgetAllocations = () => {
       {allocations.length === 0 && (
         <div className="no-allocations">
           <div className="no-allocations-icon">
-            <DollarSign size={48} />
+            <IndianRupee size={48} />
           </div>
           <h3>No Allocations Found</h3>
           <p>No allocations found matching the current filters.</p>

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
     getSettings,
+    getPublicSettings,
     updateSettings,
     resetSettings,
     getSystemInfo
@@ -10,6 +11,9 @@ const { verifyToken, authorize } = require('../middleware/auth');
 
 // All routes require authentication
 router.use(verifyToken);
+
+// Get public settings (All authenticated users)
+router.get('/public', getPublicSettings);
 
 // Get all settings (Admin only)
 router.get('/', authorize('admin'), getSettings);

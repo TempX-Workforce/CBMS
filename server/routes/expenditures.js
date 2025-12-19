@@ -7,6 +7,7 @@ const {
   approveExpenditure,
   rejectExpenditure,
   verifyExpenditure,
+  finalizeExpenditure,
   resubmitExpenditure,
   getExpenditureStats
 } = require('../controllers/expenditureController');
@@ -47,15 +48,15 @@ router.post('/:id/resubmit',
 // Verify expenditure (HOD only)
 router.put('/:id/verify', authorize('hod'), verifyExpenditure);
 
-// Approve expenditure (Office, Vice Principal, Principal)
+// Approve expenditure (Vice Principal, Principal)
 router.put('/:id/approve',
-  authorize('office', 'vice_principal', 'principal'),
+  authorize('vice_principal', 'principal'),
   approveExpenditure
 );
 
-// Reject expenditure (Office, Vice Principal, Principal)
+// Reject expenditure (Office, Vice Principal, Principal, HOD)
 router.put('/:id/reject',
-  authorize('office', 'vice_principal', 'principal'),
+  authorize('office', 'vice_principal', 'principal', 'hod'),
   rejectExpenditure
 );
 

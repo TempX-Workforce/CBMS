@@ -1,9 +1,16 @@
 import axios from 'axios';
 
-// Create axios instance with base configuration
-const baseURL = process.env.NODE_ENV === 'production'
-  ? (process.env.VITE_API_URL || 'https://cbms-mjcv.onrender.com/api')
-  : '/api';
+const getBaseUrl = () => {
+  if (!import.meta.env.PROD) return '/api';
+
+  let url = import.meta.env.VITE_API_URL || import.meta.env.REACT_APP_API_URL || 'https://localhost:5000/api';
+  if (!url.endsWith('/api')) {
+    url += '/api';
+  }
+  return url;
+};
+
+const baseURL = getBaseUrl();
 
 const api = axios.create({
   baseURL,
@@ -37,7 +44,7 @@ api.interceptors.response.use(
       // Token expired or invalid
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/cbms/login';
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
@@ -140,6 +147,7 @@ export const notificationAPI = {
 // Settings API
 export const settingsAPI = {
   getSettings: () => api.get('/settings'),
+  getPublicSettings: () => api.get('/settings/public'),
   updateSettings: (data) => api.put('/settings', data),
   resetSettings: (data) => api.post('/settings/reset', data),
   getSystemInfo: () => api.get('/settings/system-info'),

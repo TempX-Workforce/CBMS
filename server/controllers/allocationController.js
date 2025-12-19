@@ -2,19 +2,20 @@ const Allocation = require('../models/Allocation');
 const Department = require('../models/Department');
 const BudgetHead = require('../models/BudgetHead');
 const Expenditure = require('../models/Expenditure');
+const { recordAuditLog } = require('../utils/auditService');
 
 // @desc    Get all allocations
 // @route   GET /api/allocations
 // @access  Private/Office
 const getAllocations = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      financialYear, 
-      department, 
+    const {
+      page = 1,
+      limit = 10,
+      financialYear,
+      department,
       budgetHead,
-      search 
+      search
     } = req.query;
 
     const query = {};
@@ -83,14 +84,14 @@ const getAllocationById = async (req, res) => {
       budgetHead: allocation.budgetHead._id,
       financialYear: allocation.financialYear
     })
-    .populate('submittedBy', 'name email')
-    .sort({ createdAt: -1 });
+      .populate('submittedBy', 'name email')
+      .sort({ createdAt: -1 });
 
     res.json({
       success: true,
-      data: { 
+      data: {
         allocation,
-        expenditures 
+        expenditures
       }
     });
   } catch (error) {
@@ -111,12 +112,12 @@ const createAllocation = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { 
-      financialYear, 
-      department, 
-      budgetHead, 
-      allocatedAmount, 
-      remarks 
+    const {
+      financialYear,
+      department,
+      budgetHead,
+      allocatedAmount,
+      remarks
     } = req.body;
 
     // Validate required fields
@@ -178,6 +179,21 @@ const createAllocation = async (req, res) => {
       .populate('budgetHead', 'name category')
       .populate('createdBy', 'name email');
 
+    // Log the creation
+    await recordAuditLog({
+      eventType: 'allocation_created',
+      req,
+      targetEntity: 'Allocation',
+      targetId: populatedAllocation._id,
+      details: {
+        financialYear: populatedAllocation.financialYear,
+        department: populatedAllocation.department.name,
+        budgetHead: populatedAllocation.budgetHead.name,
+        amount: populatedAllocation.allocatedAmount
+      },
+      newValues: populatedAllocation
+    });
+
     res.status(201).json({
       success: true,
       message: 'Allocation created successfully',
@@ -228,17 +244,28 @@ const updateAllocation = async (req, res) => {
     const updateData = {};
     if (allocatedAmount !== undefined) updateData.allocatedAmount = parseFloat(allocatedAmount);
     if (remarks !== undefined) updateData.remarks = remarks;
-    updateData.lastModifiedBy = req.user._id;
+    const previousValues = allocation.toObject();
 
     const updatedAllocation = await Allocation.findByIdAndUpdate(
       allocationId,
       updateData,
       { new: true, runValidators: true, session }
     )
-    .populate('department', 'name code')
-    .populate('budgetHead', 'name category')
-    .populate('createdBy', 'name email')
-    .populate('lastModifiedBy', 'name email');
+      .populate('department', 'name code')
+      .populate('budgetHead', 'name category')
+      .populate('createdBy', 'name email')
+      .populate('lastModifiedBy', 'name email');
+
+    // Log the update
+    await recordAuditLog({
+      eventType: 'allocation_updated',
+      req,
+      targetEntity: 'Allocation',
+      targetId: allocationId,
+      details: { updatedFields: Object.keys(updateData) },
+      previousValues,
+      newValues: updatedAllocation
+    });
 
     await session.commitTransaction();
 
@@ -367,8 +394,8 @@ const getAllocationStats = async (req, res) => {
     };
 
     result.remaining = result.totalAllocated - result.totalSpent;
-    result.utilizationPercentage = result.totalAllocated > 0 
-      ? (result.totalSpent / result.totalAllocated) * 100 
+    result.utilizationPercentage = result.totalAllocated > 0
+      ? (result.totalSpent / result.totalAllocated) * 100
       : 0;
 
     res.json({
@@ -410,11 +437,11 @@ const bulkCreateAllocations = async (req, res) => {
 
     for (let i = 0; i < allocations.length; i++) {
       const allocationData = allocations[i];
-      
+
       try {
         // Validate required fields
-        if (!allocationData.financialYear || !allocationData.department || 
-            !allocationData.budgetHead || !allocationData.allocatedAmount) {
+        if (!allocationData.financialYear || !allocationData.department ||
+          !allocationData.budgetHead || !allocationData.allocatedAmount) {
           errors.push(`Row ${i + 1}: Missing required fields`);
           continue;
         }
@@ -479,6 +506,173 @@ const bulkCreateAllocations = async (req, res) => {
   }
 };
 
+// @desc    Get year-over-year comparison
+// @route   GET /api/allocations/year-comparison
+// @access  Private/Office
+const getYearComparison = async (req, res) => {
+  try {
+    const { currentYear, previousYear } = req.query;
+
+    if (!currentYear || !previousYear) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current year and previous year are required'
+      });
+    }
+
+    // Helper to get dates from financial year string (e.g., "2024-2025")
+    const getDatesFromFY = (fy) => {
+      // Handle "2024-25" vs "2024-2025" formats
+      let startYear, endYear;
+      if (fy.includes('-20')) {
+        [startYear, endYear] = fy.split('-').map(Number);
+      } else {
+        const parts = fy.split('-');
+        startYear = parseInt(parts[0]);
+        endYear = 2000 + parseInt(parts[1]);
+      }
+
+      const startDate = new Date(startYear, 3, 1); // April 1st
+      const endDate = new Date(endYear, 2, 31, 23, 59, 59); // March 31st
+      return { startDate, endDate };
+    };
+
+    // Get previous year data
+    const prevDates = getDatesFromFY(previousYear);
+    const prevAllocations = await Allocation.find({ financialYear: previousYear })
+      .populate('department', 'name code')
+      .populate('budgetHead', 'name category');
+
+    const prevExpenditures = await Expenditure.find({
+      billDate: { $gte: prevDates.startDate, $lte: prevDates.endDate }
+    });
+
+    // Get current year data
+    const currentDates = getDatesFromFY(currentYear);
+    const currentAllocations = await Allocation.find({ financialYear: currentYear })
+      .populate('department', 'name code')
+      .populate('budgetHead', 'name category');
+
+    const currentExpenditures = await Expenditure.find({
+      billDate: { $gte: currentDates.startDate, $lte: currentDates.endDate }
+    });
+
+    // Helper to calculate totals
+    const calcTotals = (allocs, exps) => {
+      const allocated = allocs.reduce((sum, a) => sum + a.allocatedAmount, 0);
+      const spent = exps.reduce((sum, e) => sum + e.billAmount, 0);
+      const utilization = allocated > 0 ? Math.round((spent / allocated) * 100) : 0;
+      return { allocated, spent, utilization };
+    };
+
+    const prevTotals = calcTotals(prevAllocations, prevExpenditures);
+    const currentTotals = calcTotals(currentAllocations, currentExpenditures);
+
+    // Calculate changes
+    const calcChange = (curr, prev) => {
+      const change = curr - prev;
+      const percent = prev > 0 ? ((change / prev) * 100).toFixed(2) : 0;
+      return { change, changePercentage: percent, current: curr, previous: prev };
+    };
+
+    const overallComparison = {
+      currentYear,
+      previousYear,
+      allocationChange: calcChange(currentTotals.allocated, prevTotals.allocated),
+      spendingChange: calcChange(currentTotals.spent, prevTotals.spent),
+      utilizationChange: {
+        change: (currentTotals.utilization - prevTotals.utilization).toFixed(2),
+        current: currentTotals.utilization,
+        previous: prevTotals.utilization
+      }
+    };
+
+    // Department Comparison
+    // Get unique departments
+    const deptMap = new Set();
+    [...prevAllocations, ...currentAllocations].forEach(a => {
+      if (a.department) deptMap.add(a.department._id.toString());
+    });
+
+    // We need department names, so let's build a map from ID to Name
+    const deptNameMap = {};
+    [...prevAllocations, ...currentAllocations].forEach(a => {
+      if (a.department) deptNameMap[a.department._id.toString()] = a.department.name;
+    });
+
+    const departmentComparison = Array.from(deptMap).map(deptId => {
+      const pAlloc = prevAllocations.filter(a => a.department && a.department._id.toString() === deptId);
+      const cAlloc = currentAllocations.filter(a => a.department && a.department._id.toString() === deptId);
+
+      const pExp = prevExpenditures.filter(e => e.department && e.department.toString() === deptId);
+      const cExp = currentExpenditures.filter(e => e.department && e.department.toString() === deptId);
+
+      const pT = calcTotals(pAlloc, pExp);
+      const cT = calcTotals(cAlloc, cExp);
+
+      return {
+        departmentName: deptNameMap[deptId] || 'Unknown',
+        allocationChange: calcChange(cT.allocated, pT.allocated),
+        spendingChange: calcChange(cT.spent, pT.spent),
+        utilizationChange: {
+          change: (cT.utilization - pT.utilization).toFixed(2),
+          current: cT.utilization,
+          previous: pT.utilization
+        }
+      };
+    });
+
+    // Budget Head Comparison
+    const headMap = new Set();
+    [...prevAllocations, ...currentAllocations].forEach(a => {
+      if (a.budgetHead) headMap.add(a.budgetHead._id.toString());
+    });
+    const headNameMap = {};
+    [...prevAllocations, ...currentAllocations].forEach(a => {
+      if (a.budgetHead) headNameMap[a.budgetHead._id.toString()] = a.budgetHead.name;
+    });
+
+    const budgetHeadComparison = Array.from(headMap).map(headId => {
+      const pAlloc = prevAllocations.filter(a => a.budgetHead && a.budgetHead._id.toString() === headId);
+      const cAlloc = currentAllocations.filter(a => a.budgetHead && a.budgetHead._id.toString() === headId);
+
+      const pExp = prevExpenditures.filter(e => e.budgetHead && e.budgetHead.toString() === headId);
+      const cExp = currentExpenditures.filter(e => e.budgetHead && e.budgetHead.toString() === headId);
+
+      const pT = calcTotals(pAlloc, pExp);
+      const cT = calcTotals(cAlloc, cExp);
+
+      return {
+        budgetHeadName: headNameMap[headId] || 'Unknown',
+        allocationChange: calcChange(cT.allocated, pT.allocated),
+        spendingChange: calcChange(cT.spent, pT.spent),
+        utilizationChange: {
+          change: (cT.utilization - pT.utilization).toFixed(2),
+          current: cT.utilization,
+          previous: pT.utilization
+        }
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        overallComparison,
+        departmentComparison,
+        budgetHeadComparison
+      }
+    });
+
+  } catch (error) {
+    console.error('Get year comparison error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching year comparison',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   getAllocations,
   getAllocationById,
@@ -486,5 +680,6 @@ module.exports = {
   updateAllocation,
   deleteAllocation,
   getAllocationStats,
-  bulkCreateAllocations
+  bulkCreateAllocations,
+  getYearComparison
 };

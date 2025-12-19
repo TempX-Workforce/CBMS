@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { allocationAPI, expenditureAPI, departmentsAPI, reportAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { DollarSign, CreditCard, Wallet, PieChart, List, Receipt, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import { IndianRupee, CreditCard, Wallet, PieChart, List, Receipt, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 import './ConsolidatedDashboard.css';
 
 const ConsolidatedDashboard = () => {
@@ -167,11 +167,11 @@ const ConsolidatedDashboard = () => {
         <div className="overview-stats">
           <div className="stat-card primary">
             <div className="stat-icon">
-              <DollarSign size={32} />
+              <IndianRupee size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalAllocated)}</div>
-              <div className="stat-label">Total Budget Allocated</div>
+              <div className="stat-label">Total Budget Allotted</div>
             </div>
           </div>
           <div className="stat-card success">
@@ -180,7 +180,7 @@ const ConsolidatedDashboard = () => {
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalSpent)}</div>
-              <div className="stat-label">Total Expenses Incurred</div>
+              <div className="stat-label">Expenses Incurred Till Date</div>
             </div>
           </div>
           <div className="stat-card warning">
@@ -189,7 +189,7 @@ const ConsolidatedDashboard = () => {
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalRemaining)}</div>
-              <div className="stat-label">Balance Budget Available</div>
+              <div className="stat-label">Value of Un-utilized Budget</div>
             </div>
           </div>
           <div className="stat-card info">
@@ -198,7 +198,7 @@ const ConsolidatedDashboard = () => {
             </div>
             <div className="stat-info">
               <div className="stat-number">{stats.summary.utilizationPercentage}%</div>
-              <div className="stat-label">Percentage of Fund Utilized</div>
+              <div className="stat-label">Percentage Utilized</div>
             </div>
           </div>
         </div>

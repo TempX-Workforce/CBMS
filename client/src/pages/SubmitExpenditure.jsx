@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { budgetHeadsAPI, allocationAPI, expenditureAPI } from '../services/api';
+import { budgetHeadsAPI, allocationAPI, expenditureAPI, settingsAPI } from '../services/api';
 import './SubmitExpenditure.css';
 
 const SubmitExpenditure = () => {
@@ -25,6 +25,7 @@ const SubmitExpenditure = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [remainingBudget, setRemainingBudget] = useState(0);
+  const [overspendPolicy, setOverspendPolicy] = useState('disallow');
 
   useEffect(() => {
     if (user?.role !== 'department') {
@@ -34,7 +35,19 @@ const SubmitExpenditure = () => {
 
     fetchBudgetHeads();
     fetchAllocations();
+    fetchSettings();
   }, [user, navigate]);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await settingsAPI.getPublicSettings();
+      if (response.data.success) {
+        setOverspendPolicy(response.data.data.budget_overspend_policy || 'disallow');
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
+  };
 
   useEffect(() => {
     if (formData.budgetHeadId) {
@@ -132,7 +145,12 @@ const SubmitExpenditure = () => {
 
     // Check if bill amount exceeds remaining budget
     if (formData.billAmount && parseFloat(formData.billAmount) > remainingBudget) {
-      newErrors.billAmount = `Bill amount exceeds remaining budget (₹${remainingBudget.toLocaleString()})`;
+      if (overspendPolicy === 'disallow') {
+        newErrors.billAmount = `Bill amount exceeds remaining budget (₹${remainingBudget.toLocaleString()}). Overspend is not allowed.`;
+      } else {
+        // Warning only
+        // We'll handle this in the return to allow submission
+      }
     }
 
     setErrors(newErrors);
@@ -149,15 +167,13 @@ const SubmitExpenditure = () => {
     try {
       // Create FormData for file upload
       const formDataToSend = new FormData();
-      formDataToSend.append('budgetHeadId', formData.budgetHeadId);
+      formDataToSend.append('budgetHead', formData.budgetHeadId);
       formDataToSend.append('billNumber', formData.billNumber);
       formDataToSend.append('billDate', formData.billDate);
       formDataToSend.append('billAmount', formData.billAmount);
       formDataToSend.append('partyName', formData.partyName);
       formDataToSend.append('expenseDetails', formData.expenseDetails);
       formDataToSend.append('referenceBudgetRegisterNo', formData.referenceBudgetRegisterNo);
-      formDataToSend.append('departmentId', user.department);
-
       // Append files
       formData.attachments.forEach((file, index) => {
         formDataToSend.append('attachments', file);

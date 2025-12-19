@@ -1,6 +1,8 @@
 const sgMail = require('@sendgrid/mail');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const PushSubscription = require('../models/PushSubscription');
+const { sendPushNotification } = require('../services/pushService');
 
 // Initialize SendGrid
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -55,6 +57,12 @@ const notificationTemplates = {
     title: 'Approval Reminder',
     message: 'You have pending expenditure requests that require your approval.',
     priority: 'medium',
+    actionRequired: true
+  },
+  attachments_missing: {
+    title: 'Attachments Missing',
+    message: 'Your expenditure request is missing required attachments. Please upload them to proceed.',
+    priority: 'high',
     actionRequired: true
   }
 };
@@ -160,6 +168,31 @@ const createNotification = async (notificationData) => {
       metadata: notificationData.metadata
     });
 
+
+
+    // Send Realtime Web Push
+    try {
+      const subscriptions = await PushSubscription.find({ user: notificationData.recipient });
+
+      if (subscriptions.length > 0) {
+        const payload = {
+          title: notification.title,
+          body: notification.message,
+          icon: '/logo192.png', // Ensure this exists in public/ or adjust
+          data: {
+            url: notification.actionUrl,
+            ...notification.metadata
+          }
+        };
+
+        const promises = subscriptions.map(sub => sendPushNotification(sub, payload));
+        await Promise.allSettled(promises);
+      }
+    } catch (pushError) {
+      console.error('Error sending push notification:', pushError);
+      // Don't fail the database creation
+    }
+
     return notification;
   } catch (error) {
     console.error('Error creating notification:', error);
@@ -172,7 +205,7 @@ const sendEmailNotification = async (recipientEmail, type, data) => {
   try {
     // Check if we have a dynamic template for this type
     const templateId = getTemplateId(type);
-    
+
     if (templateId) {
       // Use dynamic template
       await sendTemplateEmail(recipientEmail, templateId, data);
@@ -195,26 +228,26 @@ const sendEmailNotification = async (recipientEmail, type, data) => {
 
       await sgMail.send(msg);
     }
-    
+
     console.log(`Email sent to ${recipientEmail} for ${type}`);
   } catch (error) {
     console.error('Error sending email:', error);
-    
+
     // Handle specific SendGrid errors
     if (error.response) {
       const errorBody = error.response.body;
       console.error('SendGrid error response:', errorBody);
-      
+
       // Check for sender verification error
-      if (errorBody.errors && errorBody.errors.some(err => 
-        err.message.includes('verified Sender Identity') || 
+      if (errorBody.errors && errorBody.errors.some(err =>
+        err.message.includes('verified Sender Identity') ||
         err.message.includes('sender authentication')
       )) {
         console.error('🚨 SENDER VERIFICATION ERROR:');
         console.error('The from email address is not verified in SendGrid.');
         console.error('Please verify your sender identity at: https://app.sendgrid.com/settings/sender_auth');
         console.error('Or update EMAIL_FROM in your .env file to use a verified email address.');
-        
+
         // Try to send with a fallback email if configured
         if (process.env.EMAIL_FROM_FALLBACK) {
           console.log('Attempting to send with fallback email...');
@@ -235,7 +268,7 @@ const sendEmailNotification = async (recipientEmail, type, data) => {
         }
       }
     }
-    
+
     // Don't throw error to prevent breaking the main flow
     // Just log the error and continue
   }
@@ -251,7 +284,7 @@ const getTemplateId = (type) => {
     'welcome': process.env.SENDGRID_WELCOME_TEMPLATE_ID,
     'password_reset': process.env.SENDGRID_PASSWORD_RESET_TEMPLATE_ID
   };
-  
+
   return templateMap[type];
 };
 
@@ -279,7 +312,7 @@ const sendTemplateEmail = async (recipientEmail, templateId, dynamicData) => {
 // Send notification to multiple recipients
 const sendBulkNotification = async (recipients, notificationData) => {
   const notifications = [];
-  
+
   for (const recipientId of recipients) {
     try {
       const notification = await createNotification({
@@ -291,16 +324,16 @@ const sendBulkNotification = async (recipients, notificationData) => {
       console.error(`Error creating notification for user ${recipientId}:`, error);
     }
   }
-  
+
   return notifications;
 };
 
 // Get users by role for notifications
 const getUsersByRole = async (roles) => {
   try {
-    const users = await User.find({ 
+    const users = await User.find({
       role: { $in: roles },
-      isActive: true 
+      isActive: true
     }).select('_id email name role');
     return users;
   } catch (error) {
@@ -315,10 +348,12 @@ const notifyExpenditureSubmission = async (expenditure) => {
     // Get HOD and Office users
     const hodUsers = await getUsersByRole(['hod']);
     const officeUsers = await getUsersByRole(['office']);
-    
+    const principalUsers = await getUsersByRole(['principal', 'vice_principal']);
+
     const recipients = [
-      ...hodUsers.filter(user => user._id.toString() === expenditure.department.toString()),
-      ...officeUsers
+      ...hodUsers.filter(user => user.department && user.department.toString() === expenditure.department.toString()),
+      ...officeUsers,
+      ...principalUsers
     ].map(user => user._id);
 
     // Create in-app notifications
@@ -337,7 +372,13 @@ const notifyExpenditureSubmission = async (expenditure) => {
     });
 
     // Send email notifications
-    for (const user of [...hodUsers, ...officeUsers]) {
+    const emailRecipients = [
+      ...hodUsers.filter(user => user.department && user.department.toString() === expenditure.department.toString()),
+      ...officeUsers,
+      ...principalUsers
+    ];
+
+    for (const user of emailRecipients) {
       await sendEmailNotification(user.email, 'expenditure_submitted', {
         billNumber: expenditure.billNumber,
         billAmount: expenditure.billAmount,
@@ -428,6 +469,11 @@ const notifyBudgetExhaustion = async (allocation) => {
 
     const utilizationPercentage = (allocation.spentAmount / allocation.allocatedAmount) * 100;
 
+    // Only notify if utilization is above 90% (remaining < 10%)
+    if (utilizationPercentage < 90) {
+      return;
+    }
+
     for (const user of departmentUsers) {
       await createNotification({
         recipient: user._id,
@@ -471,7 +517,7 @@ const sendApprovalReminders = async () => {
 
     for (const approver of approvers) {
       const pendingCount = pendingExpenditures.length;
-      
+
       if (pendingCount > 0) {
         await createNotification({
           recipient: approver._id,

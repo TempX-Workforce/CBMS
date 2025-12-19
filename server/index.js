@@ -17,6 +17,7 @@ const fileRoutes = require('./routes/files');
 const auditLogRoutes = require('./routes/auditLogs');
 const reportRoutes = require('./routes/reports');
 const systemRoutes = require('./routes/system');
+const pushRoutes = require('./routes/pushRoutes');
 
 // Import services
 const { initReminderService } = require('./services/reminderService');
@@ -24,46 +25,29 @@ const { initReminderService } = require('./services/reminderService');
 const app = express();
 
 // Middleware
-const corsOptions = {
-  origin: (origin, callback) => {
-    // If CORS_ORIGIN is '*' or 'true', allow all origins
-    if (process.env.CORS_ORIGIN === '*' || process.env.CORS_ORIGIN === 'true') {
-      return callback(null, true);
-    }
-
-    // List of allowed origins
-    let envOrigins = [];
-    if (process.env.CORS_ORIGIN && process.env.CORS_ORIGIN !== 'false') {
-      envOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
-    }
-
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://tempx-workforce.github.io',
-      'https://tempx-workforce.github.io/CBMS',
-      'https://cbms-mjcv.onrender.com',
-      ...envOrigins
-    ].filter(Boolean);
-
-    // Normalize origin (remove trailing dot if present)
-    const normalizedOrigin = origin ? origin.replace(/\.$/, '') : origin;
-
-    // Allow requests with no origin (like mobile apps, curl, or same-origin)
-    if (!normalizedOrigin) return callback(null, true);
-
-    if (allowedOrigins.indexOf(normalizedOrigin) !== -1) {
-      callback(null, true);
-    } else {
-      console.warn('Blocked by CORS:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: process.env.CORS_CREDENTIALS === 'true',
+app.use(cors({
+  origin: true,
+  credentials: true,
   optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Security Middleware
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
+app.use(helmet());
+
+// Rate limiting: 100 requests per 15 minutes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+app.use('/api', limiter);
 
 // Serve static files (for uploaded attachments)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -73,7 +57,7 @@ const statusHandler = (req, res) => {
   res.json({
     success: true,
     message: 'CBMS Backend API is running!',
-    version: '1.0.0',
+    version: '1.0.2',
     endpoints: {
       auth: '/api/auth',
       users: '/api/users',
@@ -103,6 +87,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/push', pushRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -169,10 +154,14 @@ mongoose.connect(process.env.MONGODB_URI)
   });
 
 // Graceful shutdown
-process.on('SIGINT', () => {
-  mongoose.connection.close(() => {
+process.on('SIGINT', async () => {
+  try {
+    await mongoose.connection.close();
     console.log('\n🛑 MongoDB connection closed');
     console.log('🛑 Shutting down server...');
     process.exit(0);
-  });
+  } catch (err) {
+    console.error('Error during shutdown:', err);
+    process.exit(1);
+  }
 });

@@ -14,15 +14,13 @@ const { verifyToken, authorize } = require('../middleware/auth');
 // All routes require authentication
 router.use(verifyToken);
 
-// All routes require admin access
-router.use(authorize('admin'));
-
+// Routes
 router.get('/', getUsers);
-router.post('/', createUser);
-router.get('/stats', getUserStats);
-router.get('/role/:role', getUsersByRole);
-router.get('/:id', getUserById);
-router.put('/:id', updateUser);
-router.delete('/:id', deleteUser);
+router.post('/', authorize('admin'), createUser);
+router.get('/stats', authorize('admin'), getUserStats);
+router.get('/role/:role', authorize('admin'), getUsersByRole);
+router.get('/:id', authorize('admin'), getUserById);
+router.put('/:id', authorize('admin'), updateUser);
+router.delete('/:id', authorize('admin'), deleteUser);
 
 module.exports = router;

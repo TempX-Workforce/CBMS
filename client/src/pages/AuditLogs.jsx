@@ -22,6 +22,7 @@ const AuditLogs = () => {
     totalPages: 1,
     totalLogs: 0
   });
+  const [selectedLog, setSelectedLog] = useState(null);
 
   useEffect(() => {
     fetchAuditLogs();
@@ -111,7 +112,15 @@ const AuditLogs = () => {
       'budget_allocation_updated': '#ffc107',
       'user_created': '#6f42c1',
       'user_updated': '#fd7e14',
-      'department_created': '#20c997'
+      'user_deleted': '#d63384',
+      'department_created': '#20c997',
+      'department_updated': '#0dcaf0',
+      'department_deleted': '#adb5bd',
+      'budget_head_created': '#6610f2',
+      'budget_head_updated': '#fd7e14',
+      'budget_head_deleted': '#343a40',
+      'allocation_created': '#007bff',
+      'allocation_updated': '#ffc107'
     };
     return colors[eventType] || '#6c757d';
   };
@@ -139,6 +148,12 @@ const AuditLogs = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const renderValue = (value) => {
+    if (value === null || value === undefined) return 'null';
+    if (typeof value === 'object') return JSON.stringify(value, null, 2);
+    return String(value);
   };
 
   if (loading) {
@@ -222,8 +237,13 @@ const AuditLogs = () => {
             <option value="expenditure_submitted">Expenditure Submitted</option>
             <option value="expenditure_approved">Expenditure Approved</option>
             <option value="expenditure_rejected">Expenditure Rejected</option>
-            <option value="budget_allocation_created">Budget Allocation Created</option>
+            <option value="allocation_created">Budget Allocation Created</option>
+            <option value="allocation_updated">Budget Allocation Updated</option>
             <option value="user_created">User Created</option>
+            <option value="user_deleted">User Deleted</option>
+            <option value="department_created">Department Created</option>
+            <option value="department_updated">Department Updated</option>
+            <option value="budget_head_created">Budget Head Created</option>
           </select>
         </div>
         <div className="filter-group">
@@ -325,19 +345,12 @@ const AuditLogs = () => {
                   )}
                 </td>
                 <td className="details">
-                  {log.details && Object.keys(log.details).length > 0 && (
-                    <div className="details-summary">
-                      {Object.entries(log.details).slice(0, 2).map(([key, value]) => (
-                        <div key={key} className="detail-item">
-                          <span className="detail-key">{key}:</span>
-                          <span className="detail-value">{String(value)}</span>
-                        </div>
-                      ))}
-                      {Object.keys(log.details).length > 2 && (
-                        <span className="more-details">+{Object.keys(log.details).length - 2} more</span>
-                      )}
-                    </div>
-                  )}
+                  <button
+                    className="btn-view-details"
+                    onClick={() => setSelectedLog(log)}
+                  >
+                    View Details
+                  </button>
                 </td>
               </tr>
             ))}
@@ -378,6 +391,61 @@ const AuditLogs = () => {
             Next
             <ChevronRight size={18} />
           </button>
+        </div>
+      )}
+
+      {selectedLog && (
+        <div className="log-modal-overlay" onClick={() => setSelectedLog(null)}>
+          <div className="log-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Audit Log Details</h2>
+              <button className="close-btn" onClick={() => setSelectedLog(null)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="log-info-grid">
+                <div className="info-item">
+                  <label>Event Type</label>
+                  <span className="event-badge" style={{ backgroundColor: getEventTypeColor(selectedLog.eventType) }}>
+                    {selectedLog.eventType}
+                  </span>
+                </div>
+                <div className="info-item">
+                  <label>Timestamp</label>
+                  <span>{formatDate(selectedLog.createdAt)}</span>
+                </div>
+                <div className="info-item">
+                  <label>Actor</label>
+                  <span>{selectedLog.actorName} ({selectedLog.actorRole})</span>
+                </div>
+                <div className="info-item">
+                  <label>IP Address</label>
+                  <span>{selectedLog.ipAddress || 'N/A'}</span>
+                </div>
+              </div>
+
+              {selectedLog.details && Object.keys(selectedLog.details).length > 0 && (
+                <div className="details-box">
+                  <h3>Metadata</h3>
+                  <pre>{JSON.stringify(selectedLog.details, null, 2)}</pre>
+                </div>
+              )}
+
+              <div className="values-comparison">
+                <div className="value-column">
+                  <h3>Previous Values</h3>
+                  <div className="json-container">
+                    <pre>{selectedLog.previousValues ? JSON.stringify(selectedLog.previousValues, null, 2) : 'No previous data'}</pre>
+                  </div>
+                </div>
+                <div className="value-column">
+                  <h3>New Values</h3>
+                  <div className="json-container">
+                    <pre>{selectedLog.newValues ? JSON.stringify(selectedLog.newValues, null, 2) : 'No new data'}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

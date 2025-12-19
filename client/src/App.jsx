@@ -1,6 +1,6 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout/Layout';
 
@@ -16,6 +16,7 @@ import GraphicalDashboard from './pages/GraphicalDashboard';
 import DepartmentDetail from './pages/DepartmentDetail';
 import BudgetAllocations from './pages/BudgetAllocations';
 import SubmitExpenditure from './pages/SubmitExpenditure';
+import Expenditures from './pages/Expenditures';
 import ApprovalsQueue from './pages/ApprovalsQueue';
 import YearComparison from './pages/YearComparison';
 import Reports from './pages/Reports';
@@ -31,6 +32,22 @@ import DepartmentUsers from './pages/DepartmentUsers';
 import Profile from './pages/Profile';
 import './App.css';
 
+// Dashboard Wrapper Component
+const DashboardWrapper = () => {
+  const { user } = useAuth();
+
+  if (!user) return <Navigate to="/login" />;
+
+  if (user.role === 'department') {
+    return <DepartmentDashboard />;
+  }
+
+  if (user.role === 'hod') {
+    return <HODDashboard />;
+  }
+
+  return <Dashboard />;
+};
 
 function App() {
   return (
@@ -39,11 +56,11 @@ function App() {
         <div className="App">
           <Routes>
             {/* Public Routes */}
-            <Route path="/cbms/login" element={<Login />} />
+            <Route path="/login" element={<Login />} />
             {/* Protected Routes */}
-            <Route path="/cbms" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="dashboard" element={<DashboardWrapper />} />
 
               {/* Admin Routes */}
               <Route path="users" element={<Users />} />
@@ -58,7 +75,7 @@ function App() {
               <Route path="reports" element={<Reports />} />
 
               {/* Department Routes */}
-              <Route path="expenditures" element={<DepartmentDashboard />} />
+              <Route path="expenditures" element={<Expenditures />} />
               <Route path="submit-expenditure" element={<SubmitExpenditure />} />
               <Route path="resubmit-expenditure/:id" element={<ResubmitExpenditure />} />
 
@@ -85,7 +102,7 @@ function App() {
             <Route path="/reset-password/:token" element={<ResetPassword />} />
 
             {/* Catch all route */}
-            <Route path="*" element={<Navigate to="/cbms/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
       </Router>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactECharts from 'echarts-for-react';
 import { departmentsAPI } from '../services/api';
-import { ArrowLeft, Building2, TrendingUp, TrendingDown, Calendar, AlertCircle, FileText, DollarSign } from 'lucide-react';
+import { ArrowLeft, Building2, TrendingUp, TrendingDown, Calendar, AlertCircle, FileText, IndianRupee } from 'lucide-react';
 import './DepartmentDetail.css';
 
 const DepartmentDetail = () => {
@@ -196,7 +196,7 @@ const DepartmentDetail = () => {
             <div className="summary-grid">
                 <div className="summary-card">
                     <div className="card-icon" style={{ background: '#667eea' }}>
-                        <DollarSign size={24} />
+                        <IndianRupee size={24} />
                     </div>
                     <div className="card-content">
                         <h3>{formatCurrency(departmentData.summary.totalAllocated)}</h3>
@@ -218,7 +218,7 @@ const DepartmentDetail = () => {
 
                 <div className="summary-card">
                     <div className="card-icon" style={{ background: '#ffc107' }}>
-                        <DollarSign size={24} />
+                        <IndianRupee size={24} />
                     </div>
                     <div className="card-content">
                         <h3>{formatCurrency(departmentData.summary.totalRemaining)}</h3>

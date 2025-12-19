@@ -12,7 +12,7 @@ const registerUser = async (req, res, next) => {
     const { name, email, password, role, department } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -70,7 +70,7 @@ const loginUser = async (req, res) => {
     const { email, password } = req.body;
 
     // Find user and populate department
-    const user = await User.findOne({ email })
+    const user = await User.findOne({ email: email.toLowerCase() })
       .populate('department', 'name code')
       .select('+password');
 

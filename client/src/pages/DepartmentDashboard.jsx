@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { allocationAPI, expenditureAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { DollarSign, CreditCard, Wallet, PieChart, CheckCircle, AlertTriangle, Receipt, Plus, List, Download } from 'lucide-react';
@@ -6,6 +7,7 @@ import './DepartmentDashboard.css';
 
 const DepartmentDashboard = () => {
   const { user, updateProfile, logout } = useAuth();
+  const navigate = useNavigate();
   const [allocations, setAllocations] = useState([]);
   const [expenditures, setExpenditures] = useState([]);
   const [stats, setStats] = useState(null);
@@ -14,12 +16,9 @@ const DepartmentDashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    console.log('DepartmentDashboard useEffect - user:', user);
-    console.log('DepartmentDashboard useEffect - user.department:', user?.department);
     if (user?.department) {
       fetchData();
     } else {
-      console.log('No department found for user, setting loading to false');
       setLoading(false);
     }
   }, [user]);
@@ -27,17 +26,12 @@ const DepartmentDashboard = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      console.log('Fetching data for department:', user.department);
 
       const [allocationsResponse, expendituresResponse, statsResponse] = await Promise.all([
         allocationAPI.getAllocations({ departmentId: user.department }),
         expenditureAPI.getExpenditures({ departmentId: user.department }),
         allocationAPI.getAllocationStats({ departmentId: user.department })
       ]);
-
-      console.log('Allocations response:', allocationsResponse.data);
-      console.log('Expenditures response:', expendituresResponse.data);
-      console.log('Stats response:', statsResponse.data);
 
       setAllocations(allocationsResponse.data.data.allocations);
       setExpenditures(expendituresResponse.data.data.expenditures);
@@ -62,8 +56,6 @@ const DepartmentDashboard = () => {
 
       // Update context
       await updateProfile(updatedUser);
-
-      console.log('User data refreshed:', updatedUser);
     } catch (err) {
       console.error('Error refreshing user data:', err);
     } finally {
@@ -87,7 +79,8 @@ const DepartmentDashboard = () => {
     const colors = {
       pending: '#ffc107',
       approved: '#28a745',
-      rejected: '#dc3545'
+      rejected: '#dc3545',
+      verified: '#17a2b8'
     };
     return colors[status] || '#6c757d';
   };
@@ -113,17 +106,6 @@ const DepartmentDashboard = () => {
       <div className="department-dashboard-container">
         <div className="loading">
           Loading department dashboard...
-          <br />
-          <small>User: {user?.name} | Department: {user?.department || 'None'}</small>
-          <br />
-          <button
-            className="btn btn-primary"
-            onClick={refreshUserData}
-            disabled={refreshing}
-            style={{ marginTop: '10px' }}
-          >
-            {refreshing ? 'Refreshing...' : 'Refresh User Data'}
-          </button>
         </div>
       </div>
     );
@@ -176,7 +158,7 @@ const DepartmentDashboard = () => {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon">
-              <DollarSign size={32} />
+              <IndianRupee size={32} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalAllocated)}</div>
@@ -216,55 +198,61 @@ const DepartmentDashboard = () => {
       <div className="dashboard-content">
         <div className="budget-overview">
           <h2>Budget Overview by Head</h2>
-          <div className="budget-cards">
-            {allocations.map((allocation) => {
-              const utilization = getUtilizationPercentage(allocation.allocatedAmount, allocation.spentAmount);
-              return (
-                <div key={allocation._id} className="budget-card">
-                  <div className="budget-header">
-                    <h3 className="budget-head-name">{allocation.budgetHeadName}</h3>
-                    <span className="budget-head-code">{allocation.budgetHeadCode}</span>
-                  </div>
-
-                  <div className="budget-amounts">
-                    <div className="amount-row">
-                      <span className="label">Allocated:</span>
-                      <span className="amount">{formatCurrency(allocation.allocatedAmount)}</span>
-                    </div>
-                    <div className="amount-row">
-                      <span className="label">Spent:</span>
-                      <span className="amount spent">{formatCurrency(allocation.spentAmount)}</span>
-                    </div>
-                    <div className="amount-row">
-                      <span className="label">Remaining:</span>
-                      <span className="amount remaining">{formatCurrency(allocation.remainingAmount)}</span>
-                    </div>
-                  </div>
-
-                  <div className="utilization-bar">
-                    <div className="utilization-fill" style={{
-                      width: `${utilization}%`,
-                      backgroundColor: getUtilizationColor(utilization)
-                    }}></div>
-                    <span className="utilization-text">{utilization}%</span>
-                  </div>
-
-                  <div className="budget-status">
-                    {allocation.remainingAmount > 0 ? (
-                      <span className="status available">
-                        <CheckCircle size={16} />
-                        Budget Available
-                      </span>
-                    ) : (
-                      <span className="status exhausted">
-                        <AlertTriangle size={16} />
-                        Budget Exhausted
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="budget-table-container table-responsive">
+            <table className="budget-table">
+              <thead>
+                <tr>
+                  <th>Budget Head</th>
+                  <th>Allocated</th>
+                  <th>Spent</th>
+                  <th>Remaining</th>
+                  <th>Utilization</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allocations.map((allocation) => {
+                  const utilization = getUtilizationPercentage(allocation.allocatedAmount, allocation.spentAmount);
+                  return (
+                    <tr key={allocation._id}>
+                      <td data-label="Budget Head">
+                        <div className="budget-head-info">
+                          <span className="head-name">{allocation.budgetHeadName}</span>
+                          <span className="head-code">{allocation.budgetHeadCode}</span>
+                        </div>
+                      </td>
+                      <td data-label="Allocated" className="amount">{formatCurrency(allocation.allocatedAmount)}</td>
+                      <td data-label="Spent" className="amount spent">{formatCurrency(allocation.spentAmount)}</td>
+                      <td data-label="Remaining" className="amount remaining">{formatCurrency(allocation.remainingAmount)}</td>
+                      <td data-label="Utilization">
+                        <div className="utilization-cell">
+                          <div className="utilization-bar-small">
+                            <div className="utilization-fill-small" style={{
+                              width: `${utilization}%`,
+                              backgroundColor: getUtilizationColor(utilization)
+                            }}></div>
+                          </div>
+                          <span className="utilization-text-small">{utilization}%</span>
+                        </div>
+                      </td>
+                      <td data-label="Status">
+                        {allocation.remainingAmount > 0 ? (
+                          <span className="status-tag available">
+                            <CheckCircle size={14} />
+                            Available
+                          </span>
+                        ) : (
+                          <span className="status-tag exhausted">
+                            <AlertTriangle size={14} />
+                            Exhausted
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -315,11 +303,17 @@ const DepartmentDashboard = () => {
       <div className="quick-actions">
         <h2>Quick Actions</h2>
         <div className="action-buttons">
-          <button className="btn btn-primary">
+          <button
+            className="btn btn-primary"
+            onClick={() => navigate('/submit-expenditure')}
+          >
             <Plus size={18} />
             Submit New Expenditure
           </button>
-          <button className="btn btn-secondary">
+          <button
+            className="btn btn-secondary"
+            onClick={() => navigate('/expenditures')}
+          >
             <List size={18} />
             View All Expenditures
           </button>
