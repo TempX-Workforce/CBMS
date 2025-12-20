@@ -1,4 +1,5 @@
 services:
+  # Backend API
   - type: web
     name: cbms-api
     env: node
@@ -12,5 +13,5 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: SENDGRID_API_KEY
-        sync: false
+      - key: PORT
+        value: 5000

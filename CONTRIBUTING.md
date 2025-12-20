@@ -560,7 +560,7 @@ We use Git hooks to ensure code quality:
 
 ## 📄 License
 
-By contributing to CBMS, you agree that your contributions will be licensed under the ISC License.
+By contributing to CBMS, you agree that your contributions will be licensed under the MIT License.
 
 ## 🙏 Acknowledgments
 
