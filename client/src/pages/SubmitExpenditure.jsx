@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { budgetHeadsAPI, allocationAPI, expenditureAPI, settingsAPI } from '../services/api';
+import { budgetHeadsAPI, allocationAPI, expenditureAPI, settingsAPI, fileAPI } from '../services/api';
+import { AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import './SubmitExpenditure.css';
 
 const SubmitExpenditure = () => {
@@ -131,6 +132,7 @@ const SubmitExpenditure = () => {
     }));
   };
 
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -223,7 +225,7 @@ const SubmitExpenditure = () => {
         <form onSubmit={handleSubmit} className="expenditure-form">
           {errors.submit && (
             <div className="alert alert-danger">
-              <LuAlertCircle size={20} />
+              <AlertCircle size={20} />
               {errors.submit}
             </div>
           )}
@@ -380,7 +382,7 @@ const SubmitExpenditure = () => {
               accept=".pdf,.jpg,.jpeg,.png"
             />
             <span className="form-help">
-              Upload supporting documents (PDF, JPG, PNG). Maximum 10MB per file, up to 5 files.
+              Upload supporting documents (PDF, JPG, PNG).
             </span>
             {errors.attachments && (
               <span className="form-error">{errors.attachments}</span>
