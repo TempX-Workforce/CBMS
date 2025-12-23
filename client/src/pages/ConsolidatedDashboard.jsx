@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { allocationAPI, expenditureAPI, departmentsAPI, reportAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import { getCurrentFinancialYear, getPreviousFinancialYear } from '../utils/dateUtils';
 import { IndianRupee, CreditCard, Wallet, PieChart, List, Receipt, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
 import './ConsolidatedDashboard.css';
@@ -30,9 +31,27 @@ const ConsolidatedDashboard = () => {
 
   const [selectedFinancialYear, setSelectedFinancialYear] = useState(currentFY);
 
+  const { socket } = useSocket();
+
   useEffect(() => {
     fetchData();
   }, [selectedDepartment, selectedFinancialYear]);
+
+  // Real-time updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNotification = (data) => {
+      console.log('Real-time consolidated update received:', data);
+      fetchData(); // Refresh data on new notification
+    };
+
+    socket.on('notification', handleNotification);
+
+    return () => {
+      socket.off('notification', handleNotification);
+    };
+  }, [socket, selectedDepartment, selectedFinancialYear]);
 
   const fetchData = async () => {
     try {

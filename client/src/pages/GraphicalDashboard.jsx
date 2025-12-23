@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { allocationAPI, expenditureAPI, reportAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import { getCurrentFinancialYear, getPreviousFinancialYear } from '../utils/dateUtils';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { RefreshCw, AlertCircle, Wallet, TrendingUp, PiggyBank, Percent } from 'lucide-react';
@@ -19,17 +20,33 @@ const GraphicalDashboard = () => {
   const currentFY = getCurrentFinancialYear();
   const previousFY = getPreviousFinancialYear();
 
+  const { socket } = useSocket();
+
   useEffect(() => {
     fetchDashboardData();
 
-    // Set up auto-refresh every 30 seconds
+    // Set up auto-refresh every 30 seconds (fallback)
     const interval = setInterval(fetchDashboardData, 30000);
     setRefreshInterval(interval);
+
+    // Real-time updates
+    if (socket) {
+      const handleNotification = (data) => {
+        console.log('Real-time analytics update received:', data);
+        fetchDashboardData();
+      };
+      socket.on('notification', handleNotification);
+      
+      return () => {
+        if (interval) clearInterval(interval);
+        socket.off('notification', handleNotification);
+      };
+    }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [timeRange]);
+  }, [timeRange, socket]);
 
   const fetchDashboardData = async () => {
     try {

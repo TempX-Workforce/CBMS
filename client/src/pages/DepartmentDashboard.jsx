@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { allocationAPI, expenditureAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import { IndianRupee, CreditCard, Wallet, PieChart, CheckCircle, AlertTriangle, Receipt, Plus, List, Download } from 'lucide-react';
 import PageHeader from '../components/Common/PageHeader';
 import './DepartmentDashboard.css';
@@ -16,6 +17,8 @@ const DepartmentDashboard = () => {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const { socket } = useSocket();
+
   useEffect(() => {
     if (user?.department) {
       fetchData();
@@ -23,6 +26,22 @@ const DepartmentDashboard = () => {
       setLoading(false);
     }
   }, [user]);
+
+  // Real-time updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNotification = (data) => {
+      console.log('Real-time update received:', data);
+      fetchData(); // Refresh data on new notification
+    };
+
+    socket.on('notification', handleNotification);
+
+    return () => {
+      socket.off('notification', handleNotification);
+    };
+  }, [socket, user]);
 
   const fetchData = async () => {
     try {

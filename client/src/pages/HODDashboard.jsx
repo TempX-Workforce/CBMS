@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { expenditureAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import { CheckCircle, Paperclip, Check, X } from 'lucide-react';
 import PageHeader from '../components/Common/PageHeader';
 import './HODDashboard.css';
@@ -15,9 +16,27 @@ const HODDashboard = () => {
   const [approvalRemarks, setApprovalRemarks] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  const { socket } = useSocket();
+
   useEffect(() => {
     fetchExpenditures();
   }, []);
+
+  // Real-time updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNotification = (data) => {
+      console.log('Real-time HOD update received:', data);
+      fetchExpenditures(); // Refresh data on new notification
+    };
+
+    socket.on('notification', handleNotification);
+
+    return () => {
+      socket.off('notification', handleNotification);
+    };
+  }, [socket]);
 
   const fetchExpenditures = async () => {
     try {
