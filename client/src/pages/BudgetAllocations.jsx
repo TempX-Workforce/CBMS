@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { allocationAPI, departmentsAPI, budgetHeadsAPI } from '../services/api';
 import Tooltip from '../components/Tooltip/Tooltip';
 import { Plus, IndianRupee, CreditCard, Wallet, PieChart, Pencil, Trash2, X } from 'lucide-react';
@@ -11,15 +12,6 @@ const BudgetAllocations = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [editingAllocation, setEditingAllocation] = useState(null);
-  const [formData, setFormData] = useState({
-    departmentId: '',
-    budgetHeadId: '',
-    allocatedAmount: '',
-    financialYear: '2024-25',
-    remarks: ''
-  });
   const [filters, setFilters] = useState({
     search: '',
     departmentId: '',
@@ -62,57 +54,12 @@ const BudgetAllocations = () => {
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({
       ...prev,
       [name]: value
     }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingAllocation) {
-        await allocationAPI.updateAllocation(editingAllocation._id, formData);
-      } else {
-        await allocationAPI.createAllocation(formData);
-      }
-
-      setShowModal(false);
-      setEditingAllocation(null);
-      setFormData({
-        departmentId: '',
-        budgetHeadId: '',
-        allocatedAmount: '',
-        financialYear: '2024-25',
-        remarks: ''
-      });
-      fetchData();
-    } catch (err) {
-      setError('Failed to save allocation');
-      console.error('Error saving allocation:', err);
-    }
-  };
-
-  const handleEdit = (allocation) => {
-    setEditingAllocation(allocation);
-    setFormData({
-      department: allocation.departmentId,
-      budgetHead: allocation.budgetHeadId,
-      allocatedAmount: allocation.allocatedAmount.toString(),
-      financialYear: allocation.financialYear,
-      remarks: allocation.remarks || ''
-    });
-    setShowModal(true);
   };
 
   const handleDelete = async (id) => {
@@ -125,30 +72,6 @@ const BudgetAllocations = () => {
         console.error('Error deleting allocation:', err);
       }
     }
-  };
-
-  const openModal = () => {
-    setEditingAllocation(null);
-    setFormData({
-      departmentId: '',
-      budgetHeadId: '',
-      allocatedAmount: '',
-      financialYear: '2024-25',
-      remarks: ''
-    });
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingAllocation(null);
-    setFormData({
-      departmentId: '',
-      budgetHeadId: '',
-      allocatedAmount: '',
-      financialYear: '2024-25',
-      remarks: ''
-    });
   };
 
   const getUtilizationPercentage = (allocated, spent) => {
@@ -175,9 +98,9 @@ const BudgetAllocations = () => {
     <div className="budget-allocations-container">
       <div className="allocations-header">
         <h1>Budget Allocations Management</h1>
-        <button className="btn btn-primary" onClick={openModal}>
+        <Link to="/allocations/add" className="btn btn-primary">
           <Plus size={18} /> Add Allocation
-        </button>
+        </Link>
       </div>
 
       {error && (
@@ -193,7 +116,7 @@ const BudgetAllocations = () => {
               <IndianRupee size={32} />
             </div>
             <div className="stat-info">
-              <div className="stat-number">₹{stats.summary.totalAllocated.toLocaleString()}</div>
+              <div className="stat-number">₹{stats.summary?.totalAllocated?.toLocaleString() || '0'}</div>
               <div className="stat-label">Total Allocated</div>
             </div>
           </div>
@@ -202,7 +125,7 @@ const BudgetAllocations = () => {
               <CreditCard size={32} />
             </div>
             <div className="stat-info">
-              <div className="stat-number">₹{stats.summary.totalSpent.toLocaleString()}</div>
+              <div className="stat-number">₹{stats.summary?.totalSpent?.toLocaleString() || '0'}</div>
               <div className="stat-label">Total Spent</div>
             </div>
           </div>
@@ -211,7 +134,7 @@ const BudgetAllocations = () => {
               <Wallet size={32} />
             </div>
             <div className="stat-info">
-              <div className="stat-number">₹{stats.summary.totalRemaining.toLocaleString()}</div>
+              <div className="stat-number">₹{stats.summary?.totalRemaining?.toLocaleString() || '0'}</div>
               <div className="stat-label">Remaining Budget</div>
             </div>
           </div>
@@ -220,7 +143,7 @@ const BudgetAllocations = () => {
               <PieChart size={32} />
             </div>
             <div className="stat-info">
-              <div className="stat-number">{stats.summary.utilizationPercentage}%</div>
+              <div className="stat-number">{stats.summary?.utilizationPercentage || '0'}%</div>
               <div className="stat-label">Utilization</div>
             </div>
           </div>
@@ -272,7 +195,7 @@ const BudgetAllocations = () => {
             className="filter-select"
           >
             <option value="">All Financial Years</option>
-            {stats?.financialYears.map(year => (
+            {(stats?.financialYears || []).map(year => (
               <option key={year} value={year}>{year}</option>
             ))}
           </select>
@@ -311,9 +234,9 @@ const BudgetAllocations = () => {
                     </div>
                   </td>
                   <td>{allocation.financialYear}</td>
-                  <td className="amount">₹{allocation.allocatedAmount.toLocaleString()}</td>
-                  <td className="amount">₹{allocation.spentAmount.toLocaleString()}</td>
-                  <td className="amount">₹{allocation.remainingAmount.toLocaleString()}</td>
+                  <td className="amount">₹{allocation.allocatedAmount?.toLocaleString() || '0'}</td>
+                  <td className="amount">₹{allocation.spentAmount?.toLocaleString() || '0'}</td>
+                  <td className="amount">₹{allocation.remainingAmount?.toLocaleString() || '0'}</td>
                   <td>
                     <div className="utilization-bar">
                       <div className="utilization-fill" style={{
@@ -326,12 +249,12 @@ const BudgetAllocations = () => {
                   <td>
                     <div className="action-buttons">
                       <Tooltip text="Edit Allocation" position="top">
-                        <button
+                        <Link
+                          to={`/allocations/edit/${allocation._id}`}
                           className="btn btn-sm btn-secondary"
-                          onClick={() => handleEdit(allocation)}
                         >
                           <Pencil size={16} />
-                        </button>
+                        </Link>
                       </Tooltip>
                       <Tooltip text="Delete Allocation" position="top">
                         <button
@@ -350,112 +273,6 @@ const BudgetAllocations = () => {
         </table>
       </div>
 
-      {allocations.length === 0 && (
-        <div className="no-allocations">
-          <div className="no-allocations-icon">
-            <IndianRupee size={48} />
-          </div>
-          <h3>No Allocations Found</h3>
-          <p>No allocations found matching the current filters.</p>
-        </div>
-      )}
-
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h2>{editingAllocation ? 'Edit Allocation' : 'Add New Allocation'}</h2>
-              <button className="close-btn" onClick={closeModal}>
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit} className="modal-form">
-              <div className="form-group">
-                <label htmlFor="departmentId">Department *</label>
-                <select
-                  id="departmentId"
-                  name="departmentId"
-                  value={formData.departmentId}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select Department</option>
-                  {departments.map(dept => (
-                    <option key={dept._id} value={dept._id}>{dept.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="budgetHeadId">Budget Head *</label>
-                <select
-                  id="budgetHeadId"
-                  name="budgetHeadId"
-                  value={formData.budgetHeadId}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select Budget Head</option>
-                  {budgetHeads.map(head => (
-                    <option key={head._id} value={head._id}>{head.name} ({head.code})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="allocatedAmount">Allocated Amount *</label>
-                  <input
-                    type="number"
-                    id="allocatedAmount"
-                    name="allocatedAmount"
-                    value={formData.allocatedAmount}
-                    onChange={handleInputChange}
-                    required
-                    min="0"
-                    step="0.01"
-                    placeholder="Enter amount"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="financialYear">Financial Year *</label>
-                  <input
-                    type="text"
-                    id="financialYear"
-                    name="financialYear"
-                    value={formData.financialYear}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="e.g., 2024-25"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="remarks">Remarks</label>
-                <textarea
-                  id="remarks"
-                  name="remarks"
-                  value={formData.remarks}
-                  onChange={handleInputChange}
-                  placeholder="Additional remarks..."
-                  rows="3"
-                />
-              </div>
-
-              <div className="modal-actions">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingAllocation ? 'Update Allocation' : 'Create Allocation'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

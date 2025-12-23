@@ -8,10 +8,10 @@ import '../../pages/GraphicalDashboard.css'; // Import the CSS where the glass s
 
 const PageHeader = ({ title, subtitle, children }) => {
   return (
-    <div className="dashboard-header" style={{ marginBottom: '1.5rem', marginTop: '0', padding: '1.5rem' }}>
-      <div className="header-content" style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        <h1 style={{ fontSize: '1.75rem', margin: 0, lineHeight: 1.2 }}>{title}</h1>
-        {subtitle && <p style={{ margin: 0, opacity: 0.8, fontSize: '0.95rem' }}>{subtitle}</p>}
+    <div className="dashboard-header-card">
+      <div className="header-content">
+        <h1>{title}</h1>
+        {subtitle && <p>{subtitle}</p>}
       </div>
       <div className="header-controls">
         {children}

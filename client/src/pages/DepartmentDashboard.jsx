@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { allocationAPI, expenditureAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import { IndianRupee, CreditCard, Wallet, PieChart, CheckCircle, AlertTriangle, Receipt, Plus, List, Download } from 'lucide-react';
+import PageHeader from '../components/Common/PageHeader';
 import './DepartmentDashboard.css';
 
 const DepartmentDashboard = () => {
@@ -15,6 +17,8 @@ const DepartmentDashboard = () => {
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const { socket } = useSocket();
+
   useEffect(() => {
     if (user?.department) {
       fetchData();
@@ -22,6 +26,22 @@ const DepartmentDashboard = () => {
       setLoading(false);
     }
   }, [user]);
+
+  // Real-time updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNotification = (data) => {
+      console.log('Real-time update received:', data);
+      fetchData(); // Refresh data on new notification
+    };
+
+    socket.on('notification', handleNotification);
+
+    return () => {
+      socket.off('notification', handleNotification);
+    };
+  }, [socket, user]);
 
   const fetchData = async () => {
     try {
@@ -143,10 +163,10 @@ const DepartmentDashboard = () => {
 
   return (
     <div className="department-dashboard-container">
-      <div className="dashboard-header">
-        <h1>Department Dashboard</h1>
-        <p>Budget overview and expenditure tracking for your department</p>
-      </div>
+      <PageHeader 
+        title="Department Dashboard"
+        subtitle="Budget overview and expenditure tracking for your department"
+      />
 
       {error && (
         <div className="error-message">
@@ -156,36 +176,36 @@ const DepartmentDashboard = () => {
 
       {stats && (
         <div className="stats-grid">
-          <div className="stat-card">
+          <div className="card-standard stat-card">
             <div className="stat-icon">
-              <IndianRupee size={32} />
+              <IndianRupee size={24} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalAllocated)}</div>
               <div className="stat-label">Total Allocated</div>
             </div>
           </div>
-          <div className="stat-card">
+          <div className="card-standard stat-card">
             <div className="stat-icon">
-              <CreditCard size={32} />
+              <CreditCard size={24} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalSpent)}</div>
               <div className="stat-label">Total Spent</div>
             </div>
           </div>
-          <div className="stat-card">
+          <div className="card-standard stat-card">
             <div className="stat-icon">
-              <Wallet size={32} />
+              <Wallet size={24} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{formatCurrency(stats.summary.totalRemaining)}</div>
               <div className="stat-label">Remaining Budget</div>
             </div>
           </div>
-          <div className="stat-card">
+          <div className="card-standard stat-card">
             <div className="stat-icon">
-              <PieChart size={32} />
+              <PieChart size={24} />
             </div>
             <div className="stat-info">
               <div className="stat-number">{stats.summary.utilizationPercentage}%</div>
@@ -196,8 +216,11 @@ const DepartmentDashboard = () => {
       )}
 
       <div className="dashboard-content">
-        <div className="budget-overview">
-          <h2>Budget Overview by Head</h2>
+        <div className="card-standard budget-overview">
+          <div className="card-standard-header">
+            <h2>Budget Overview by Head</h2>
+            <p>Track allocation and utilization per budget head</p>
+          </div>
           <div className="budget-table-container table-responsive">
             <table className="budget-table">
               <thead>
@@ -256,71 +279,79 @@ const DepartmentDashboard = () => {
           </div>
         </div>
 
-        <div className="expenditure-history">
-          <h2>Recent Expenditures</h2>
-          <div className="expenditure-list">
-            {expenditures.slice(0, 10).map((expenditure) => (
-              <div key={expenditure._id} className="expenditure-item">
-                <div className="expenditure-info">
-                  <div className="bill-info">
-                    <h4 className="bill-number">{expenditure.billNumber}</h4>
-                    <span className="budget-head">{expenditure.budgetHead?.name || 'Unknown'}</span>
-                  </div>
-                  <div className="expenditure-details">
-                    <span className="party-name">{expenditure.partyName}</span>
-                    <span className="bill-date">{formatDate(expenditure.billDate)}</span>
-                  </div>
-                </div>
-
-                <div className="expenditure-amount">
-                  <span className="amount">{formatCurrency(expenditure.billAmount)}</span>
-                </div>
-
-                <div className="expenditure-status">
-                  <span
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(expenditure.status) }}
-                  >
-                    {expenditure.status.charAt(0).toUpperCase() + expenditure.status.slice(1)}
-                  </span>
-                </div>
-              </div>
-            ))}
+        <div className="right-column-content" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div className="card-standard quick-actions">
+            <div className="card-standard-header">
+              <h2>Quick Actions</h2>
+              <p>Common tasks and navigation</p>
+            </div>
+            <div className="action-buttons">
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate('/submit-expenditure')}
+              >
+                <Plus size={18} />
+                Submit New Expenditure
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => navigate('/expenditures')}
+              >
+                <List size={18} />
+                View All Expenditures
+              </button>
+              <button className="btn btn-secondary">
+                <Download size={18} />
+                Download Report
+              </button>
+            </div>
           </div>
 
-          {expenditures.length === 0 && (
-            <div className="no-expenditures">
-              <div className="no-expenditures-icon">
-                <Receipt size={16} />
-              </div>
-              <h3>No Expenditures</h3>
-              <p>No expenditures have been submitted yet.</p>
+          <div className="card-standard expenditure-history">
+            <div className="card-standard-header">
+              <h2>Recent Expenditures</h2>
+              <p>Latest approved spending entries</p>
             </div>
-          )}
-        </div>
-      </div>
+            <div className="expenditure-list">
+              {expenditures.slice(0, 10).map((expenditure) => (
+                <div key={expenditure._id} className="expenditure-item">
+                  <div className="expenditure-info">
+                    <div className="bill-info">
+                      <h4 className="bill-number">{expenditure.billNumber}</h4>
+                      <span className="budget-head">{expenditure.budgetHead?.name || 'Unknown'}</span>
+                    </div>
+                    <div className="expenditure-details">
+                      <span className="party-name">{expenditure.partyName}</span>
+                      <span className="bill-date">{formatDate(expenditure.billDate)}</span>
+                    </div>
+                  </div>
 
-      <div className="quick-actions">
-        <h2>Quick Actions</h2>
-        <div className="action-buttons">
-          <button
-            className="btn btn-primary"
-            onClick={() => navigate('/submit-expenditure')}
-          >
-            <Plus size={18} />
-            Submit New Expenditure
-          </button>
-          <button
-            className="btn btn-secondary"
-            onClick={() => navigate('/expenditures')}
-          >
-            <List size={18} />
-            View All Expenditures
-          </button>
-          <button className="btn btn-secondary">
-            <Download size={18} />
-            Download Report
-          </button>
+                  <div className="expenditure-amount">
+                    <span className="amount">{formatCurrency(expenditure.billAmount)}</span>
+                  </div>
+
+                  <div className="expenditure-status">
+                    <span
+                      className="status-badge"
+                      style={{ backgroundColor: getStatusColor(expenditure.status), color: 'white' }}
+                    >
+                      {expenditure.status.charAt(0).toUpperCase() + expenditure.status.slice(1)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {expenditures.length === 0 && (
+              <div className="no-expenditures">
+                <div className="no-expenditures-icon">
+                  <Receipt size={16} />
+                </div>
+                <h3>No Expenditures</h3>
+                <p>No expenditures have been submitted yet.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

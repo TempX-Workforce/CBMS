@@ -9,31 +9,7 @@
   animation: slideUpFade 0.5s ease-out;
 }
 
-.dashboard-header {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-backdrop);
-  border: var(--glass-border);
-  border-radius: var(--radius-xl);
-  padding: 1rem 1.5rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: var(--glass-shadow);
-}
 
-.header-content h1 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-
-.header-content p {
-  margin: 0;
-  font-size: 1rem;
-  color: var(--text-secondary);
-}
 
 .header-controls {
   display: flex;
@@ -71,93 +47,76 @@
   transform: translateY(-2px);
 }
 
-/* Metrics Grid - Similar to other dashboards but simplified */
+/* Metrics Grid */
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
 .metric-card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-backdrop);
-  border: var(--glass-border);
-  border-radius: var(--radius-xl);
-  padding: 1.5rem;
+  height: auto;
   display: flex;
   align-items: center;
   gap: 1.5rem;
-  box-shadow: var(--glass-shadow);
-  transition: transform 0.3s ease;
-}
-
-.metric-card:hover {
-  transform: translateY(-5px);
-  background: var(--glass-bg-hover);
 }
 
 .metric-icon {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-  color: white;
+  background: var(--primary-light);
+  color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
 }
 
 .metric-content h3 {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 800;
   color: var(--text-primary);
   margin: 0;
+  line-height: 1.2;
 }
 
-.metric-change {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--success);
+.metric-content p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0.25rem 0 0 0;
 }
 
 /* Charts Grid */
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
   margin-bottom: 2rem;
 }
 
-.chart-card {
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-backdrop);
-  border: var(--glass-border);
-  border-radius: var(--radius-xl);
-  padding: 2rem;
-  box-shadow: var(--glass-shadow);
-  transition: transform 0.3s ease;
-}
-
-.chart-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.15);
-}
-
-.chart-card.full-width {
-  grid-column: 1 / -1;
-}
-
-.chart-header h3 {
-  color: var(--text-primary);
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
+/* Fix for odd card counts: span the last item full-width */
+.charts-grid>.chart-card:last-child:nth-child(odd) {
+  grid-column: span 2;
 }
 
 .chart-container {
-  height: 350px;
+  height: 380px;
+  width: 100%;
   position: relative;
+  /* Add padding to prevent chart content from touching card borders */
+  padding-top: 1rem;
+}
+
+@media (max-width: 1200px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .charts-grid>.chart-card:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
 }
 
 /* Status Section */

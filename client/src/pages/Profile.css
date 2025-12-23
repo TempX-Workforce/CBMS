@@ -223,9 +223,10 @@
   pointer-events: none;
 }
 
-.input-with-icon input {
+.input-with-icon input,
+.input-with-icon .form-input.has-icon {
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 3rem;
+  padding: 0.75rem 1rem 0.75rem 3rem !important;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   font-size: 1rem;

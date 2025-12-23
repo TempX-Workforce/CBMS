@@ -299,6 +299,7 @@ const Profile = () => {
                                             disabled={!isEditing}
                                             required
                                             placeholder="Enter your full name"
+                                            className="form-input has-icon"
                                         />
                                     </div>
                                 </div>
@@ -316,6 +317,7 @@ const Profile = () => {
                                             disabled={!isEditing}
                                             required
                                             placeholder="Enter your email"
+                                            className="form-input has-icon"
                                         />
                                     </div>
                                 </div>
@@ -328,6 +330,7 @@ const Profile = () => {
                                             type="text"
                                             value={getRoleLabel(user?.role)}
                                             readOnly
+                                            className="form-input has-icon"
                                         />
                                     </div>
                                 </div>
@@ -341,6 +344,7 @@ const Profile = () => {
                                                 type="text"
                                                 value={user.department.name || user.department}
                                                 readOnly
+                                                className="form-input has-icon"
                                             />
                                         </div>
                                     </div>
@@ -360,6 +364,7 @@ const Profile = () => {
                                                 minute: '2-digit'
                                             }) : 'Recently joined'}
                                             readOnly
+                                            className="form-input has-icon"
                                         />
                                     </div>
                                 </div>
