@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { getCurrentFinancialYear, getPreviousFinancialYear } from '../utils/dateUtils';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { RefreshCw, AlertCircle, Wallet, TrendingUp, PiggyBank, Percent } from 'lucide-react';
+import PageHeader from '../components/Common/PageHeader';
 import './GraphicalDashboard.css';
 
 const GraphicalDashboard = () => {
@@ -394,37 +395,33 @@ const GraphicalDashboard = () => {
   return (
     <ErrorBoundary>
       <div className="graphical-dashboard-container">
-        <div className="dashboard-header">
-          <div className="header-content">
-            <h1>{getDashboardTitle()}</h1>
-            <p>Real-time budget analytics and insights</p>
+        <PageHeader 
+          title={getDashboardTitle()}
+          subtitle="Real-time budget analytics and insights"
+        >
+          <div className="time-range-selector">
+            <label>Time Range:</label>
+            <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
+              <option value="current">Current Year ({currentFY})</option>
+              <option value="previous">Previous Year ({previousFY})</option>
+            </select>
           </div>
-          <div className="header-controls">
-            <div className="time-range-selector">
-              <label>Time Range:</label>
-              <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
-                <option value="current">Current Year ({currentFY})</option>
-                <option value="previous">Previous Year ({previousFY})</option>
-              </select>
-            </div>
-            <button className="refresh-btn" onClick={fetchDashboardData}>
-              <RefreshCw size={16} />
-              Refresh
-            </button>
-          </div>
-        </div>
+          <button className="refresh-btn" onClick={fetchDashboardData}>
+            <RefreshCw size={16} />
+            Refresh
+          </button>
+        </PageHeader>
 
         {/* Key Metrics */}
         <div className="metrics-grid">
           {getKeyMetrics().map((metric, index) => (
-            <div key={index} className="metric-card">
-              <div className="metric-icon" style={{ backgroundColor: metric.color }}>
+            <div key={index} className="card-standard metric-card">
+              <div className="metric-icon" style={{ backgroundColor: metric.color, color: 'white' }}>
                 {metric.icon}
               </div>
               <div className="metric-content">
                 <h3>{metric.value}</h3>
                 <p>{metric.title}</p>
-                <span className="metric-change">{metric.change}</span>
               </div>
             </div>
           ))}
@@ -433,8 +430,8 @@ const GraphicalDashboard = () => {
         {/* Charts Grid */}
         <div className="charts-grid">
           {/* Budget Utilization Chart */}
-          <div className="chart-card">
-            <div className="chart-header">
+          <div className="card-standard chart-card">
+            <div className="card-standard-header">
               <h3>Budget Utilization by Head</h3>
               <p>Allocated vs Spent vs Remaining</p>
             </div>
@@ -451,8 +448,8 @@ const GraphicalDashboard = () => {
           </div>
 
           {/* Budget Head Distribution */}
-          <div className="chart-card">
-            <div className="chart-header">
+          <div className="card-standard chart-card">
+            <div className="card-standard-header">
               <h3>Budget Distribution</h3>
               <p>Allocation by Budget Head</p>
             </div>
@@ -470,8 +467,8 @@ const GraphicalDashboard = () => {
 
           {/* Department Comparison (for Office/Management) */}
           {user.role !== 'department' && (
-            <div className="chart-card">
-              <div className="chart-header">
+            <div className="card-standard chart-card">
+              <div className="card-standard-header">
                 <h3>Department Utilization</h3>
                 <p>Budget utilization across departments</p>
               </div>
@@ -489,8 +486,8 @@ const GraphicalDashboard = () => {
           )}
 
           {/* Expenditure Trend */}
-          <div className="chart-card">
-            <div className="chart-header">
+          <div className="card-standard chart-card">
+            <div className="card-standard-header">
               <h3>Expenditure Trend</h3>
               <p>Monthly expenditure pattern</p>
             </div>
@@ -508,8 +505,8 @@ const GraphicalDashboard = () => {
 
           {/* Year-over-Year Comparison */}
           {user.role !== 'department' && (
-            <div className="chart-card full-width">
-              <div className="chart-header">
+            <div className="card-standard chart-card full-width">
+              <div className="card-standard-header">
                 <h3>Year-over-Year Spending Comparison</h3>
                 {yearComparison ? (
                   <p>Compare department spending: {yearComparison.previousYear} vs {yearComparison.currentYear}</p>

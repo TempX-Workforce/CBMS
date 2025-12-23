@@ -26,6 +26,7 @@ import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 import Users from './pages/Users';
 import UserForm from './pages/UserForm';
+import AllocationForm from './pages/AllocationForm';
 import Departments from './pages/Departments';
 import DepartmentForm from './pages/DepartmentForm';
 import BudgetHeads from './pages/BudgetHeads';
@@ -86,6 +87,8 @@ function App() {
 
                 {/* Office Routes */}
                 <Route path="allocations" element={<BudgetAllocations />} />
+                <Route path="allocations/add" element={<AllocationForm />} />
+                <Route path="allocations/edit/:id" element={<AllocationForm />} />
                 <Route path="bulk-upload" element={<BulkUpload />} />
                 <Route path="approvals" element={<ApprovalsQueue />} />
                 <Route path="reports" element={<Reports />} />

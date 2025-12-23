@@ -24,6 +24,11 @@ const budgetHeadSchema = new mongoose.Schema({
     required: [true, 'Budget head category is required'],
     default: 'other'
   },
+  department: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department',
+    default: null // null means it's available to all departments
+  },
   isActive: {
     type: Boolean,
     default: true

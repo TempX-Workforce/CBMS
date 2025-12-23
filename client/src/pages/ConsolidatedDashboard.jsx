@@ -322,7 +322,7 @@ const ConsolidatedDashboard = () => {
 
       <div className="dashboard-content">
         <div className="department-breakdown">
-          <h2>Department-wise Breakdown</h2>
+          <h2 style={{ color: 'black', marginBottom: '2rem', fontWeight: 700, fontSize: '1.5rem', textShadow: 'none' }}>Department-wise Breakdown</h2>
           <div className="department-cards">
             {departmentStats.map((dept) => (
               <div

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { budgetHeadsAPI, allocationAPI, expenditureAPI, settingsAPI, fileAPI } from '../services/api';
-import { AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Loader2, CheckCircle2, Upload, X, FileText, ImageIcon } from 'lucide-react';
+import PageHeader from '../components/Common/PageHeader';
 import './SubmitExpenditure.css';
 
 const SubmitExpenditure = () => {
@@ -128,8 +129,32 @@ const SubmitExpenditure = () => {
 
     setFormData(prev => ({
       ...prev,
-      attachments: validFiles
+      attachments: [...prev.attachments, ...validFiles]
     }));
+
+    // Reset the input so the same file can be selected again if removed
+    e.target.value = '';
+  };
+
+  const removeFile = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, i) => i !== index)
+    }));
+  };
+
+  const getFileIcon = (type) => {
+    if (type.includes('pdf')) return <FileText size={20} />;
+    if (type.includes('image')) return <ImageIcon size={20} />;
+    return <FileText size={20} />;
+  };
+
+  const getFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
 
@@ -146,12 +171,16 @@ const SubmitExpenditure = () => {
     if (!formData.expenseDetails.trim()) newErrors.expenseDetails = 'Expense details are required';
 
     // Check if bill amount exceeds remaining budget
-    if (formData.billAmount && parseFloat(formData.billAmount) > remainingBudget) {
-      if (overspendPolicy === 'disallow') {
+    if (formData.billAmount) {
+      const amount = parseFloat(formData.billAmount);
+      const allocation = allocations.find(
+        alloc => alloc.budgetHeadId === formData.budgetHeadId
+      );
+
+      if (!allocation) {
+        newErrors.billAmount = 'No budget has been allocated for this budget head. Please contact admin to allocate funds.';
+      } else if (amount > remainingBudget && overspendPolicy === 'disallow') {
         newErrors.billAmount = `Bill amount exceeds remaining budget (₹${remainingBudget.toLocaleString()}). Overspend is not allowed.`;
-      } else {
-        // Warning only
-        // We'll handle this in the return to allow submission
       }
     }
 
@@ -216,13 +245,13 @@ const SubmitExpenditure = () => {
 
   return (
     <div className="submit-expenditure-container">
-      <div className="page-header">
-        <h1 className="page-title">Submit Expenditure</h1>
-        <p className="page-subtitle">Submit a new expenditure request for approval</p>
-      </div>
+      <PageHeader 
+        title="Submit Expenditure"
+        subtitle="Submit a new expenditure request for approval"
+      />
 
-      <div className="page-content">
-        <form onSubmit={handleSubmit} className="expenditure-form">
+      <div className="expenditure-form-container">
+        <form onSubmit={handleSubmit} className="card-standard expenditure-form">
           {errors.submit && (
             <div className="alert alert-danger">
               <AlertCircle size={20} />
@@ -369,23 +398,52 @@ const SubmitExpenditure = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="attachments" className="form-label">
-              Attachments
-            </label>
-            <input
-              type="file"
-              id="attachments"
-              name="attachments"
-              onChange={handleFileChange}
-              className="form-input"
-              multiple
-              accept=".pdf,.jpg,.jpeg,.png"
-            />
-            <span className="form-help">
-              Upload supporting documents (PDF, JPG, PNG).
-            </span>
-            {errors.attachments && (
-              <span className="form-error">{errors.attachments}</span>
+            <label className="form-label">Attachments</label>
+            <div className="file-upload-wrapper">
+              <div className="file-input-custom">
+                <div className="upload-icon-wrapper">
+                  <Upload size={32} />
+                </div>
+                <div className="upload-text">Choose files or drag and drop</div>
+                <div className="upload-hint">PDF, JPG, PNG up to 10MB</div>
+                <input
+                  type="file"
+                  id="attachments"
+                  name="attachments"
+                  onChange={handleFileChange}
+                  multiple
+                  accept=".pdf,.jpg,.jpeg,.png"
+                />
+              </div>
+              {errors.attachments && (
+                <span className="form-error">{errors.attachments}</span>
+              )}
+            </div>
+
+            {formData.attachments.length > 0 && (
+              <div className="attachment-list-modern">
+                {formData.attachments.map((file, index) => (
+                  <div key={index} className="attachment-item-modern">
+                    <div className="file-info-modern">
+                      <div className="file-icon-modern">
+                        {getFileIcon(file.type)}
+                      </div>
+                      <div className="file-details-modern">
+                        <div className="file-name-modern">{file.name}</div>
+                        <div className="file-size-modern">{getFileSize(file.size)}</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="remove-file-btn"
+                      title="Remove file"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

@@ -105,6 +105,7 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/budget-heads', budgetHeadRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/allocations/bulk-upload', require('./routes/bulkUpload'));
 app.use('/api/allocations', allocationRoutes);
 app.use('/api/expenditures', expenditureRoutes);
 app.use('/api/files', fileRoutes);
@@ -171,9 +172,12 @@ mongoose.connect(process.env.MONGODB_URI)
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   const addr = server.address();
-  console.log(`🚀 CBMS Server is running on http://${addr.address}:${addr.port}`);
+  const address = addr ? addr.address : '0.0.0.0';
+  const port = addr ? addr.port : PORT;
+
+  console.log(`🚀 CBMS Server is running on http://${address}:${port}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 API Base URL: http://localhost:${addr.port}/api`);
+  console.log(`🔗 API Base URL: http://localhost:${port}/api`);
 
   // Initialize Socket.io
   initSocket(server);

@@ -115,10 +115,6 @@ const Login = () => {
               </Tooltip>
             </div>
 
-            <div className="form-footer">
-              <Link to="/forgot-password">Forgot Password?</Link>
-            </div>
-
             <button type="submit" className="signin-btn" disabled={isLoading}>
               {isLoading ? 'Signing In...' : 'Sign In'}
             </button>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { expenditureAPI } from '../services/api';
 import Tooltip from '../components/Tooltip/Tooltip';
 import { Search, RotateCcw, Eye, FileText } from 'lucide-react';
+import PageHeader from '../components/Common/PageHeader';
 import './Expenditures.css';
 
 const Expenditures = () => {
@@ -70,10 +71,10 @@ const Expenditures = () => {
 
     return (
         <div className="expenditures-container">
-            <div className="page-header">
-                <h1 className="page-title">My Expenditures</h1>
-                <p className="page-subtitle">Track and manage your department's expenditure requests</p>
-            </div>
+            <PageHeader 
+                title="My Expenditures"
+                subtitle="Track and manage your department's expenditure requests"
+            />
 
             <div className="filters-section">
                 <div className="filter-group search-group">
@@ -83,7 +84,7 @@ const Expenditures = () => {
                         placeholder="Search by Bill Number, Party..."
                         value={filters.search}
                         onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value, page: 1 }))} // Reset to page 1 on filter change
-                        className="filter-input"
+                        className="filter-input has-icon"
                     />
                 </div>
                 <div className="filter-group">
