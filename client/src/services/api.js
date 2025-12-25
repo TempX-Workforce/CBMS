@@ -28,8 +28,12 @@ api.interceptors.request.use(
       console.log('  FormData keys:', Array.from(config.data.keys()));
     }
     const token = localStorage.getItem('token');
+    console.log('[Auth Token]', token ? 'Found' : 'Not found in localStorage');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('[Authorization Header Set] Bearer token added');
+    } else {
+      console.warn('[Warning] No token found in localStorage. User may not be authenticated.');
     }
     return config;
   },
@@ -228,6 +232,7 @@ export const reportAPI = {
   getExpenditureReport: (params) => api.get('/reports/expenditures', { params }),
   getAllocationReport: (params) => api.get('/reports/allocations', { params }),
   getDashboardReport: (params) => api.get('/reports/dashboard', { params }),
+  getBudgetProposalReport: (params) => api.get('/reports/proposals', { params }),
   getAuditReport: (params) => api.get('/reports/audit', { params }),
   getConsolidatedBudgetReport: (params) => api.get('/consolidated-reports', { params }),
   getBudgetUtilizationDashboard: (params) => api.get('/consolidated-reports/utilization', { params }),
@@ -241,8 +246,11 @@ export const budgetProposalAPI = {
   createBudgetProposal: (data) => api.post('/budget-proposals', data),
   updateBudgetProposal: (id, data) => api.put(`/budget-proposals/${id}`, data),
   submitBudgetProposal: (id) => api.put(`/budget-proposals/${id}/submit`),
+  verifyBudgetProposal: (id, data) => api.put(`/budget-proposals/${id}/verify`, data),
   approveBudgetProposal: (id, data) => api.put(`/budget-proposals/${id}/approve`, data),
   rejectBudgetProposal: (id, data) => api.put(`/budget-proposals/${id}/reject`, data),
+  resubmitBudgetProposal: (id) => api.post(`/budget-proposals/${id}/resubmit`),
+  deleteBudgetProposal: (id) => api.delete(`/budget-proposals/${id}`),
   getBudgetProposalsStats: (params) => api.get('/budget-proposals/stats', { params }),
 };
 

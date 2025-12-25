@@ -39,9 +39,33 @@ const budgetProposalSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['draft', 'submitted', 'approved', 'rejected', 'revised'],
+    enum: ['draft', 'submitted', 'verified', 'approved', 'rejected', 'revised'],
     default: 'draft'
   },
+  approvalSteps: [{
+    approver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    role: {
+      type: String,
+      required: true
+    },
+    decision: {
+      type: String,
+      enum: ['approve', 'reject', 'verify'],
+      required: true
+    },
+    remarks: {
+      type: String,
+      trim: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   submittedDate: {
     type: Date,
     default: null
@@ -78,23 +102,23 @@ const budgetProposalSchema = new mongoose.Schema({
 });
 
 // Pre-save middleware to calculate total proposed amount
-budgetProposalSchema.pre('save', function(next) {
+budgetProposalSchema.pre('save', function (next) {
   if (this.proposalItems && this.proposalItems.length > 0) {
     this.totalProposedAmount = this.proposalItems.reduce((total, item) => {
       return total + item.proposedAmount;
     }, 0);
   }
-  
+
   // Set submitted date when status changes to submitted
   if (this.isModified('status') && this.status === 'submitted' && !this.submittedDate) {
     this.submittedDate = new Date();
   }
-  
+
   // Set approved date when status changes to approved
   if (this.isModified('status') && this.status === 'approved' && !this.approvedDate) {
     this.approvedDate = new Date();
   }
-  
+
   next();
 });
 

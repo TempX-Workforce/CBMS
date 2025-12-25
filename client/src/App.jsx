@@ -40,6 +40,7 @@ import BudgetProposals from './pages/BudgetProposals';
 import BudgetProposalForm from './pages/BudgetProposalForm';
 import ConsolidatedBudgetReport from './pages/ConsolidatedBudgetReport';
 import BudgetUtilizationDashboard from './pages/BudgetUtilizationDashboard';
+import BudgetProposalReport from './pages/BudgetProposalReport';
 import './App.css';
 
 // Dashboard Wrapper Component
@@ -99,6 +100,7 @@ function App() {
                 <Route path="budget-proposals/:id" element={<BudgetProposalForm />} />
                 <Route path="consolidated-budget-report" element={<ConsolidatedBudgetReport />} />
                 <Route path="budget-utilization-dashboard" element={<BudgetUtilizationDashboard />} />
+                <Route path="budget-proposal-report" element={<BudgetProposalReport />} />
                 <Route path="approvals" element={<ApprovalsQueue />} />
                 <Route path="reports" element={<Reports />} />
 

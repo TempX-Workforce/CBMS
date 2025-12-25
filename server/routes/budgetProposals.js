@@ -8,7 +8,10 @@ const {
   submitBudgetProposal,
   approveBudgetProposal,
   rejectBudgetProposal,
-  getBudgetProposalsStats
+  deleteBudgetProposal,
+  getBudgetProposalsStats,
+  verifyBudgetProposal,
+  resubmitBudgetProposal
 } = require('../controllers/budgetProposalController');
 const { verifyToken, authorize } = require('../middleware/auth');
 
@@ -25,18 +28,27 @@ router.get('/', authorize('admin', 'principal', 'vice_principal', 'office', 'hod
 router.get('/:id', getBudgetProposalById);
 
 // Create new proposal (department HOD/staff)
-router.post('/', authorize('hod', 'department_staff'), createBudgetProposal);
+router.post('/', authorize('hod', 'department_staff', 'department'), createBudgetProposal);
 
 // Update proposal (only draft/revised proposals by creator)
-router.put('/:id', authorize('hod', 'department_staff'), updateBudgetProposal);
+router.put('/:id', authorize('hod', 'department_staff', 'department'), updateBudgetProposal);
 
 // Submit proposal (only draft/revised proposals by creator)
-router.put('/:id/submit', authorize('hod', 'department_staff'), submitBudgetProposal);
+router.put('/:id/submit', authorize('hod', 'department_staff', 'department'), submitBudgetProposal);
 
-// Approve proposal (admin/principal/vice principal)
-router.put('/:id/approve', authorize('admin', 'principal', 'vice_principal'), approveBudgetProposal);
+// Delete proposal (only draft/rejected proposals)
+router.delete('/:id', authorize('hod', 'department_staff', 'department', 'admin'), deleteBudgetProposal);
 
-// Reject proposal (admin/principal/vice principal)
-router.put('/:id/reject', authorize('admin', 'principal', 'vice_principal'), rejectBudgetProposal);
+// Approve proposal (admin/principal/vice principal/office)
+router.put('/:id/approve', authorize('admin', 'principal', 'vice_principal', 'office'), approveBudgetProposal);
+
+// Verify proposal (admin/office/hod)
+router.put('/:id/verify', authorize('admin', 'office', 'hod'), verifyBudgetProposal);
+
+// Reject proposal (admin/principal/vice principal/office/hod)
+router.put('/:id/reject', authorize('admin', 'principal', 'vice_principal', 'office', 'hod'), rejectBudgetProposal);
+
+// Resubmit proposal
+router.post('/:id/resubmit', authorize('hod', 'department_staff', 'department'), resubmitBudgetProposal);
 
 module.exports = router;

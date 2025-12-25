@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require('express'); // Triggering server restart for new routes
 const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');

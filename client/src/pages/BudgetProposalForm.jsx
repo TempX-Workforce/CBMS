@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { budgetProposalAPI, departmentsAPI, budgetHeadsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { budgetProposalAPI, departmentsAPI, budgetHeadsAPI, expenditureAPI } from '../services/api';
 import PageHeader from '../components/Common/PageHeader';
-import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Send } from 'lucide-react';
 import './BudgetProposalForm.css';
 
 const BudgetProposalForm = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { id } = useParams();
   const isEditMode = !!id;
 
@@ -18,7 +20,7 @@ const BudgetProposalForm = () => {
   const [success, setSuccess] = useState(null);
   const [formData, setFormData] = useState({
     financialYear: '2025-2026',
-    department: '',
+    department: user?.department || '',
     proposalItems: [{ budgetHead: '', proposedAmount: '', justification: '', previousYearUtilization: '' }],
     notes: ''
   });
@@ -49,17 +51,26 @@ const BudgetProposalForm = () => {
       setFetching(true);
       const response = await budgetProposalAPI.getBudgetProposalById(id);
       const proposal = response.data.data.proposal;
-      
+
+      const items = proposal.proposalItems.map(item => ({
+        budgetHead: item.budgetHead._id,
+        proposedAmount: item.proposedAmount,
+        justification: item.justification,
+        previousYearUtilization: item.previousYearUtilization || 0
+      }));
+
       setFormData({
         financialYear: proposal.financialYear,
         department: proposal.department._id,
-        proposalItems: proposal.proposalItems.map(item => ({
-          budgetHead: item.budgetHead._id,
-          proposedAmount: item.proposedAmount,
-          justification: item.justification,
-          previousYearUtilization: item.previousYearUtilization || 0
-        })),
+        proposalItems: items,
         notes: proposal.notes || ''
+      });
+
+      // Auto-fetch previous year utilization if not available
+      items.forEach((item, index) => {
+        if (item.budgetHead && item.previousYearUtilization === 0) {
+          fetchPreviousYearUtilization(item.budgetHead, proposal.department._id, index, items);
+        }
       });
     } catch (err) {
       setError('Failed to fetch proposal');
@@ -83,10 +94,52 @@ const BudgetProposalForm = () => {
       ...newItems[index],
       [field]: value
     };
+
+    // Auto-fetch previous year utilization if budget head is selected
+    if (field === 'budgetHead' && value && formData.department) {
+      fetchPreviousYearUtilization(value, formData.department, index, newItems);
+    }
+
     setFormData(prev => ({
       ...prev,
       proposalItems: newItems
     }));
+  };
+
+  const fetchPreviousYearUtilization = async (budgetHeadId, departmentId, itemIndex, items) => {
+    try {
+      // Get current financial year from formData
+      const currentFY = formData.financialYear;
+      const [currentStart] = currentFY.split('-');
+      const prevYear = (parseInt(currentStart) - 1).toString();
+      const prevFY = `${prevYear}-${currentStart}`;
+
+      // Fetch expenditures from previous financial year
+      const response = await expenditureAPI.getExpenditures({
+        department: departmentId,
+        budgetHead: budgetHeadId,
+        financialYear: prevFY,
+        status: 'approved',
+        limit: 1000
+      });
+
+      if (response.data.data.expenditures && response.data.data.expenditures.length > 0) {
+        // Calculate total amount spent in previous year
+        const totalUtilized = response.data.data.expenditures.reduce((sum, exp) => {
+          return sum + (exp.amount || 0);
+        }, 0);
+
+        // Update the previous year utilization field
+        items[itemIndex].previousYearUtilization = totalUtilized;
+        setFormData(prev => ({
+          ...prev,
+          proposalItems: items
+        }));
+      }
+    } catch (err) {
+      // If error fetching previous year data, just continue without it
+      console.log('Could not fetch previous year utilization:', err.message);
+    }
   };
 
   const addItem = () => {
@@ -108,8 +161,8 @@ const BudgetProposalForm = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e, status = 'draft') => {
+    if (e) e.preventDefault();
     setLoading(true);
     setError(null);
 
@@ -136,23 +189,48 @@ const BudgetProposalForm = () => {
           justification: item.justification,
           previousYearUtilization: parseFloat(item.previousYearUtilization) || 0
         })),
-        notes: formData.notes
+        notes: formData.notes,
+        status: status
       };
+
+      console.log('[Debug] Submit data:', submitData);
 
       if (isEditMode) {
         await budgetProposalAPI.updateBudgetProposal(id, submitData);
         setSuccess('Budget proposal updated successfully');
       } else {
         await budgetProposalAPI.createBudgetProposal(submitData);
-        setSuccess('Budget proposal created successfully');
+        setSuccess(status === 'submitted' ? 'Budget proposal submitted successfully' : 'Budget proposal created successfully');
       }
+
+      const successMsg = status === 'submitted' ? 'Proposal submitted for approval!' : 'Proposal saved successfully!';
+      setSuccess(successMsg);
 
       setTimeout(() => {
         navigate('/budget-proposals');
       }, 1500);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error saving budget proposal');
-      console.error('Error saving proposal:', err);
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError('Authentication failed. Please log in again.');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else {
+        let errorMsg = err.response?.data?.message || err.response?.data?.error || 'Error saving budget proposal';
+
+        // Add validation errors if available
+        if (err.response?.data?.validationErrors && Array.isArray(err.response.data.validationErrors)) {
+          const validationDetails = err.response.data.validationErrors
+            .map(ve => `${ve.field}: ${ve.message}`)
+            .join('; ');
+          errorMsg += ` | Validation: ${validationDetails}`;
+        }
+
+        setError(errorMsg);
+        console.error('[Client Error] Full error details:', err);
+        console.error('[Client Error] Response status:', err.response?.status);
+        console.error('[Client Error] Response data:', err.response?.data);
+      }
     } finally {
       setLoading(false);
     }
@@ -164,10 +242,44 @@ const BudgetProposalForm = () => {
     }, 0);
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this budget proposal? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await budgetProposalAPI.deleteBudgetProposal(id);
+      setSuccess('Budget proposal deleted successfully');
+      setTimeout(() => {
+        navigate('/budget-proposals');
+      }, 1500);
+    } catch (err) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setError('Authentication failed. Please log in again.');
+      } else {
+        setError(err.response?.data?.message || 'Error deleting budget proposal');
+      }
+      console.error('Error deleting proposal:', err);
+      setLoading(false);
+    }
+  };
+
   if (fetching) {
     return (
       <div className="budget-proposal-form-container">
         <div className="loading">Loading budget proposal...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="budget-proposal-form-container">
+        <div className="error-message">
+          <strong>Authentication Error</strong><br />
+          You are not logged in. Please log in to create a proposal.
+        </div>
       </div>
     );
   }
@@ -214,7 +326,7 @@ const BudgetProposalForm = () => {
                 value={formData.department}
                 onChange={handleInputChange}
                 required
-                disabled={isEditMode}
+                disabled={isEditMode || ['department', 'hod'].includes(user?.role)}
               >
                 <option value="">Select Department</option>
                 {departments.map(dept => (
@@ -335,11 +447,21 @@ const BudgetProposalForm = () => {
             Cancel
           </button>
           <button
-            type="submit"
-            className="btn btn-primary"
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => handleSubmit(null, 'draft')}
             disabled={loading}
           >
-            <Save size={18} /> {loading ? 'Saving...' : isEditMode ? 'Update Proposal' : 'Create Proposal'}
+            <Save size={18} /> {loading ? 'Saving...' : isEditMode ? 'Update Draft' : 'Save as Draft'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-success"
+            onClick={() => handleSubmit(null, 'submitted')}
+            disabled={loading}
+            style={{ color: 'white' }}
+          >
+            <Send size={18} /> {loading ? 'Submitting...' : 'Save & Submit'}
           </button>
         </div>
       </form>
