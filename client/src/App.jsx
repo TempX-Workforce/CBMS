@@ -41,6 +41,9 @@ import BudgetProposalForm from './pages/BudgetProposalForm';
 import ConsolidatedBudgetReport from './pages/ConsolidatedBudgetReport';
 import BudgetUtilizationDashboard from './pages/BudgetUtilizationDashboard';
 import BudgetProposalReport from './pages/BudgetProposalReport';
+import IncomeReceipts from './pages/IncomeReceipts';
+import IncomeForm from './pages/IncomeForm';
+import FinancialYearManagement from './pages/FinancialYearManagement';
 import './App.css';
 
 // Dashboard Wrapper Component
@@ -103,6 +106,12 @@ function App() {
                 <Route path="budget-proposal-report" element={<BudgetProposalReport />} />
                 <Route path="approvals" element={<ApprovalsQueue />} />
                 <Route path="reports" element={<Reports />} />
+
+                {/* Financial Governance Routes */}
+                <Route path="income" element={<IncomeReceipts />} />
+                <Route path="income/add" element={<IncomeForm />} />
+                <Route path="income/edit/:id" element={<IncomeForm />} />
+                <Route path="financial-years" element={<FinancialYearManagement />} />
 
                 {/* Department Routes */}
                 <Route path="expenditures" element={<Expenditures />} />

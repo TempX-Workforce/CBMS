@@ -187,6 +187,14 @@ const submitExpenditure = async (req, res) => {
       financialYear
     }).session(session);
 
+    if (!allocation) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: 'No budget has been allocated for this budget head'
+      });
+    }
+
     // Check if bill amount exceeds remaining budget
     const remainingAmount = allocation.allocatedAmount - allocation.spentAmount;
     const overspendPolicy = await getSetting('budget_overspend_policy', 'disallow');
@@ -406,32 +414,42 @@ const approveExpenditure = async (req, res) => {
 
     const newSpentAmount = updateResult.spentAmount;
 
+
     await session.commitTransaction();
+    let transactionCommitted = true;
 
     // Send notifications
-    await notifyExpenditureApproval(populatedExpenditure, req.user);
+    try {
+      await notifyExpenditureApproval(populatedExpenditure, req.user);
 
-    // Check for budget exhaustion and notify if > 90%
-    const updatedAllocation = await Allocation.findById(allocation._id).populate('department budgetHead');
-    if (updatedAllocation) {
-      await notifyBudgetExhaustion(updatedAllocation);
+      // Check for budget exhaustion and notify if > 90%
+      const updatedAllocation = await Allocation.findById(allocation._id).populate('department budgetHead');
+      if (updatedAllocation) {
+        await notifyBudgetExhaustion(updatedAllocation);
+      }
+    } catch (notifyError) {
+      console.error('Notification error (non-fatal):', notifyError);
     }
 
     // Log the approval
-    await recordAuditLog({
-      eventType: 'expenditure_approved',
-      req,
-      targetEntity: 'Expenditure',
-      targetId: expenditureId,
-      details: {
-        billNumber: expenditure.billNumber,
-        billAmount: expenditure.billAmount,
-        remarks,
-        newSpentAmount
-      },
-      previousValues: previousState,
-      newValues: populatedExpenditure
-    });
+    try {
+      await recordAuditLog({
+        eventType: 'expenditure_approved',
+        req,
+        targetEntity: 'Expenditure',
+        targetId: expenditureId,
+        details: {
+          billNumber: expenditure.billNumber,
+          billAmount: expenditure.billAmount,
+          remarks,
+          newSpentAmount
+        },
+        previousValues: previousState,
+        newValues: populatedExpenditure
+      });
+    } catch (auditError) {
+      console.error('Audit log error (non-fatal):', auditError);
+    }
 
     res.json({
       success: true,
@@ -439,7 +457,9 @@ const approveExpenditure = async (req, res) => {
       data: { expenditure: populatedExpenditure }
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (session.transaction.isActive && !session.transaction.isCommitted) {
+      await session.abortTransaction();
+    }
     console.error('Approve expenditure error:', error);
     res.status(500).json({
       success: false,
@@ -591,20 +611,25 @@ const finalizeExpenditure = async (req, res) => {
     await expenditure.save({ session });
 
     await session.commitTransaction();
+    let transactionCommitted = true;
 
     // Log the finalization
-    await AuditLog.create({
-      eventType: 'expenditure_finalized',
-      actor: req.user._id,
-      actorRole: req.user.role,
-      targetEntity: 'Expenditure',
-      targetId: expenditureId,
-      details: {
-        billNumber: expenditure.billNumber,
-        billAmount: expenditure.billAmount,
-        remarks
-      }
-    });
+    try {
+      await AuditLog.create({
+        eventType: 'expenditure_finalized',
+        actor: req.user._id,
+        actorRole: req.user.role,
+        targetEntity: 'Expenditure',
+        targetId: expenditureId,
+        details: {
+          billNumber: expenditure.billNumber,
+          billAmount: expenditure.billAmount,
+          remarks
+        }
+      });
+    } catch (auditError) {
+      console.error('Audit log error (non-fatal):', auditError);
+    }
 
     const populatedExpenditure = await Expenditure.findById(expenditureId)
       .populate('department', 'name code')
@@ -618,7 +643,9 @@ const finalizeExpenditure = async (req, res) => {
       data: { expenditure: populatedExpenditure }
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (session.transaction.isActive && !session.transaction.isCommitted) {
+      await session.abortTransaction();
+    }
     console.error('Finalize expenditure error:', error);
     res.status(500).json({
       success: false,
@@ -753,6 +780,23 @@ const resubmitExpenditure = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Only rejected expenditures can be resubmitted'
+      });
+    }
+
+    // Check 1: Cannot resubmit a record that is ALREADY a resubmission (Limit depth to 1)
+    if (originalExpenditure.isResubmission) {
+      return res.status(400).json({
+        success: false,
+        message: 'This expenditure was already a resubmission. Following the "One Time Resend" policy, you cannot resubmit it again.'
+      });
+    }
+
+    // Check 2: Check if this specific record has already been resubmitted
+    const existingResubmission = await Expenditure.findOne({ originalExpenditureId: expenditureId });
+    if (existingResubmission) {
+      return res.status(400).json({
+        success: false,
+        message: 'This expenditure has already been resubmitted once. Multiple resubmissions are not allowed.'
       });
     }
 

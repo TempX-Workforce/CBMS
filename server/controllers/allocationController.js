@@ -3,6 +3,8 @@ const Department = require('../models/Department');
 const BudgetHead = require('../models/BudgetHead');
 const Expenditure = require('../models/Expenditure');
 const AllocationHistory = require('../models/AllocationHistory');
+const BudgetProposal = require('../models/BudgetProposal');
+const AllocationAmendment = require('../models/AllocationAmendment');
 const { recordAuditLog } = require('../utils/auditService');
 
 // @desc    Get all allocations
@@ -22,7 +24,14 @@ const getAllocations = async (req, res) => {
     const query = {};
 
     if (financialYear) query.financialYear = financialYear;
-    if (department) query.department = department;
+
+    // RBAC: Enforce department filter for department/hod roles
+    if (req.user.role === 'department' || req.user.role === 'hod') {
+      query.department = req.user.department;
+    } else if (department) {
+      query.department = department;
+    }
+
     if (budgetHead) query.budgetHead = budgetHead;
     if (search) {
       query.$or = [
@@ -132,7 +141,9 @@ const createAllocation = async (req, res) => {
       department,
       budgetHead,
       allocatedAmount,
-      remarks
+      remarks,
+      proposalId,
+      allowLegacy // Optional flag for admin to create legacy allocations
     } = req.body;
 
     // Validate required fields
@@ -143,6 +154,58 @@ const createAllocation = async (req, res) => {
         success: false,
         message: 'Financial year, department, budget head, and allocated amount are required'
       });
+    }
+
+    // GOVERNANCE: Require proposalId for new allocations (unless legacy flag set by admin)
+    if (!proposalId && !allowLegacy) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: 'Allocations must be created from approved budget proposals. Please provide proposalId.',
+        hint: 'To create allocation, first create and approve a budget proposal'
+      });
+    }
+
+    // If proposalId provided, validate it
+    if (proposalId) {
+      const proposal = await BudgetProposal.findById(proposalId).session(session);
+      if (!proposal) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: 'Budget proposal not found'
+        });
+      }
+
+      if (proposal.status !== 'approved') {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: `Budget proposal must be approved before creating allocation. Current status: ${proposal.status}`
+        });
+      }
+
+      // Validate proposal matches allocation data
+      if (proposal.department.toString() !== department.toString()) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: 'Proposal department does not match allocation department'
+        });
+      }
+
+      if (proposal.financialYear !== financialYear) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: 'Proposal financial year does not match allocation financial year'
+        });
+      }
     }
 
     // Check if allocation already exists for this combination
@@ -189,6 +252,8 @@ const createAllocation = async (req, res) => {
       budgetHead,
       allocatedAmount: parseFloat(allocatedAmount),
       remarks,
+      sourceProposalId: proposalId || null, // Link to proposal or null for legacy
+      status: 'active',
       createdBy: req.user._id
     }], { session });
 
@@ -264,6 +329,65 @@ const updateAllocation = async (req, res) => {
         success: false,
         message: 'Allocated amount cannot be less than already spent amount'
       });
+    }
+
+    // GOVERNANCE: Check if amount change exceeds 5% threshold
+    if (allocatedAmount && parseFloat(allocatedAmount) !== allocation.allocatedAmount) {
+      const changeAmount = parseFloat(allocatedAmount) - allocation.allocatedAmount;
+      const changePercent = Math.abs((changeAmount / allocation.allocatedAmount) * 100);
+
+      // If change exceeds 5%, create amendment request instead of direct update
+      if (changePercent > 5) {
+        // Check if user is admin/principal (they can bypass)
+        const canBypass = ['admin', 'principal'].includes(req.user.role);
+
+        if (!canBypass) {
+          await session.abortTransaction();
+
+          // Create amendment request
+          const amendment = await AllocationAmendment.create({
+            allocation: allocationId,
+            originalAmount: allocation.allocatedAmount,
+            requestedAmount: parseFloat(allocatedAmount),
+            changeReason: changeReason || remarks || 'Allocation update request',
+            requestedBy: req.user._id,
+            status: 'pending'
+          });
+
+          await recordAuditLog({
+            eventType: 'allocation_amendment_requested',
+            req,
+            targetEntity: 'AllocationAmendment',
+            targetId: amendment._id,
+            details: {
+              allocation: allocationId,
+              originalAmount: allocation.allocatedAmount,
+              requestedAmount: parseFloat(allocatedAmount),
+              changePercent: changePercent.toFixed(2)
+            }
+          });
+
+          return res.status(202).json({
+            success: true,
+            message: `Change exceeds 5% threshold (${changePercent.toFixed(1)}%). Amendment request created for Principal/Admin approval.`,
+            data: { amendment },
+            requiresApproval: true
+          });
+        }
+
+        // Admin/Principal bypassing - log it
+        await recordAuditLog({
+          eventType: 'allocation_updated',
+          req,
+          targetEntity: 'Allocation',
+          targetId: allocationId,
+          details: {
+            changePercent: changePercent.toFixed(2),
+            bypassedApproval: true,
+            bypassReason: 'Admin/Principal privilege'
+          }
+        });
+      }
     }
 
     // Store previous values for history
@@ -412,10 +536,17 @@ const deleteAllocation = async (req, res) => {
 // @access  Private/Office
 const getAllocationStats = async (req, res) => {
   try {
-    const { financialYear } = req.query;
+    const { financialYear, department } = req.query;
 
     const query = {};
     if (financialYear) query.financialYear = financialYear;
+
+    // RBAC: Enforce department filter
+    if (req.user.role === 'department' || req.user.role === 'hod') {
+      query.department = req.user.department;
+    } else if (department) {
+      query.department = department;
+    }
 
     const stats = await Allocation.aggregate([
       { $match: query },

@@ -63,8 +63,8 @@ const ResubmitExpenditure = () => {
   const fetchAllocations = async () => {
     try {
       const response = await allocationAPI.getAllocations({
-        departmentId: user.department,
-        limit: 100
+        department: user.department?._id || user.department,
+        limit: 1000
       });
       setAllocations(response.data.data.allocations);
     } catch (err) {

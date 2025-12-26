@@ -26,7 +26,8 @@ const AllocationForm = () => {
         budgetHead: '',
         allocatedAmount: '',
         financialYear: '2024-2025',
-        remarks: ''
+        remarks: '',
+        proposalId: '' // NEW: Link to approved budget proposal
     });
 
     const [proposals, setProposals] = useState([]);
@@ -75,7 +76,8 @@ const AllocationForm = () => {
             ...prev,
             budgetHead: item.budgetHead._id || item.budgetHead,
             allocatedAmount: item.proposedAmount.toString(),
-            remarks: `Based on approved budget proposal item. Justification: ${item.justification}`
+            remarks: `Based on approved budget proposal item. Justification: ${item.justification}`,
+            proposalId: item.proposalId // NEW: Store proposal ID for backend
         }));
         setShowProposalPicker(false);
     };
@@ -88,7 +90,8 @@ const AllocationForm = () => {
             setFormData(prev => ({
                 ...prev,
                 department: preselectDeptId,
-                financialYear: preselectFY
+                financialYear: preselectFY,
+                proposalId: preselectProposalId || ''
             }));
         }
     }, [id, isEditMode, preselectDeptId, preselectFY]);
@@ -138,7 +141,8 @@ const AllocationForm = () => {
                 budgetHead: allocation.budgetHead?._id || allocation.budgetHead || '',
                 allocatedAmount: allocation.allocatedAmount.toString(),
                 financialYear: allocation.financialYear,
-                remarks: allocation.remarks || ''
+                remarks: allocation.remarks || '',
+                proposalId: allocation.sourceProposalId || '' // Include existing proposal link
             });
         } catch (err) {
             setError('Failed to fetch allocation data');

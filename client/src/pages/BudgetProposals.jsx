@@ -15,7 +15,7 @@ const BudgetProposals = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
-    status: ['admin', 'office', 'principal', 'vice_principal', 'auditor'].includes(user?.role) ? 'submitted' : '',
+    status: '',
     financialYear: '2025-2026'
   });
 
@@ -237,24 +237,22 @@ const BudgetProposals = () => {
           />
         </div>
 
-        {!['admin', 'office', 'principal', 'vice_principal', 'auditor'].includes(user?.role) && (
-          <div className="form-group">
-            <label>Status</label>
-            <select
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-            >
-              <option value="">All Status</option>
-              <option value="draft">Draft</option>
-              <option value="submitted">Submitted</option>
-              <option value="verified">Verified</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="revised">Revised</option>
-            </select>
-          </div>
-        )}
+        <div className="form-group">
+          <label>Status</label>
+          <select
+            name="status"
+            value={filters.status}
+            onChange={handleFilterChange}
+          >
+            <option value="">All Status</option>
+            <option value="draft">Draft</option>
+            <option value="submitted">Submitted</option>
+            <option value="verified">Verified</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="revised">Revised</option>
+          </select>
+        </div>
       </div>
 
       <div className="proposals-table-container">
@@ -346,6 +344,17 @@ const BudgetProposals = () => {
                             style={{ color: 'white', backgroundColor: '#fd7e14', borderColor: '#fd7e14' }}
                           >
                             <RefreshCcw size={16} />
+                          </button>
+                        </Tooltip>
+                      )}
+                      {proposal.status === 'submitted' && user?.role === 'hod' && (
+                        <Tooltip text="Verify Proposal" position="top">
+                          <button
+                            onClick={() => budgetProposalAPI.verifyBudgetProposal(proposal._id, { remarks: 'Verified by HOD' }).then(() => fetchProposals())}
+                            className="btn btn-sm btn-primary"
+                            style={{ color: 'white' }}
+                          >
+                            <ShieldCheck size={16} />
                           </button>
                         </Tooltip>
                       )}

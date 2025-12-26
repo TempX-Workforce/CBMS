@@ -20,6 +20,8 @@ const consolidatedReportRoutes = require('./routes/consolidatedReports');
 const budgetProposalRoutes = require('./routes/budgetProposals');
 const systemRoutes = require('./routes/system');
 const pushRoutes = require('./routes/pushRoutes');
+const incomeRoutes = require('./routes/income');
+const financialYearRoutes = require('./routes/financialYears');
 
 // Import services
 const { initReminderService } = require('./services/reminderService');
@@ -117,6 +119,8 @@ app.use('/api/consolidated-reports', consolidatedReportRoutes);
 app.use('/api/budget-proposals', budgetProposalRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/income', incomeRoutes);
+app.use('/api/financial-years', financialYearRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

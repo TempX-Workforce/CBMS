@@ -2,6 +2,7 @@ const BudgetProposal = require('../models/BudgetProposal');
 const Department = require('../models/Department');
 const BudgetHead = require('../models/BudgetHead');
 const Allocation = require('../models/Allocation');
+const AllocationHistory = require('../models/AllocationHistory');
 const AuditLog = require('../models/AuditLog');
 const { recordAuditLog } = require('../utils/auditService');
 
@@ -329,7 +330,7 @@ const updateBudgetProposal = async (req, res) => {
     console.error('[Error] updateBudgetProposal error:', error.message);
     console.error('[Error] Error stack:', error.stack);
     if (error.name === 'ValidationError') {
-      console.error('[Error] Validation error details:', Object.keys(error.errors).map(key => `${key}: ${error.errors[key].message}`));
+      console.error('[Error] Validation error details:', Object.keys(error.errors).map(key => `${key}: ${error.errors[key].message} `));
     }
     res.status(500).json({
       success: false,
@@ -473,6 +474,73 @@ const approveBudgetProposal = async (req, res) => {
 
     await proposal.save();
 
+    // GOVERNANCE: Auto-create allocations from approved proposal items
+    const createdAllocations = [];
+    const allocationErrors = [];
+
+    try {
+      for (const item of proposal.proposalItems) {
+        try {
+          // Check if allocation already exists
+          const existingAllocation = await Allocation.findOne({
+            financialYear: proposal.financialYear,
+            department: proposal.department,
+            budgetHead: item.budgetHead
+          });
+
+          if (existingAllocation) {
+            console.log(`Allocation already exists for ${item.budgetHead}, skipping auto - creation`);
+            allocationErrors.push({
+              budgetHead: item.budgetHead,
+              reason: 'Allocation already exists'
+            });
+            continue;
+          }
+
+          // Create allocation
+          const allocation = await Allocation.create({
+            financialYear: proposal.financialYear,
+            department: proposal.department,
+            budgetHead: item.budgetHead,
+            allocatedAmount: item.proposedAmount,
+            remarks: item.justification || 'Created from approved budget proposal',
+            sourceProposalId: proposal._id,
+            status: 'active',
+            createdBy: req.user._id
+          });
+
+          // Create initial history record
+          await AllocationHistory.create({
+            allocationId: allocation._id,
+            version: 1,
+            changeType: 'created',
+            snapshot: {
+              department: allocation.department,
+              budgetHead: allocation.budgetHead,
+              allocatedAmount: allocation.allocatedAmount,
+              spentAmount: 0,
+              financialYear: allocation.financialYear,
+              remarks: allocation.remarks
+            },
+            changes: {},
+            changeReason: `Auto - created from approved budget proposal ${proposal._id} `,
+            changedBy: req.user._id
+          });
+
+          createdAllocations.push(allocation._id);
+        } catch (itemError) {
+          console.error(`Error creating allocation for budget head ${item.budgetHead}: `, itemError.message);
+          allocationErrors.push({
+            budgetHead: item.budgetHead,
+            error: itemError.message
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error auto-creating allocations:', error.message);
+      // Don't fail the approval, just log the error
+    }
+
     const updatedProposal = await BudgetProposal.findById(id)
       .populate('department', 'name code')
       .populate('proposalItems.budgetHead', 'name category budgetType')
@@ -494,8 +562,13 @@ const approveBudgetProposal = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: { proposal: updatedProposal },
-      message: 'Budget proposal approved successfully'
+      data: {
+        proposal: updatedProposal,
+        allocationsCreated: createdAllocations.length,
+        allocationIds: createdAllocations,
+        allocationErrors: allocationErrors.length > 0 ? allocationErrors : undefined
+      },
+      message: `Budget proposal approved successfully.${createdAllocations.length} allocation(s) created automatically.`
     });
   } catch (error) {
     res.status(500).json({
@@ -712,7 +785,7 @@ const resubmitBudgetProposal = async (req, res) => {
         justification: item.justification,
         previousYearUtilization: item.previousYearUtilization
       })),
-      notes: `Resubmission of rejected proposal ${id}. ${originalProposal.notes || ''}`,
+      notes: `Resubmission of rejected proposal ${id}. ${originalProposal.notes || ''} `,
       status: 'draft',
       submittedBy: req.user._id
     });

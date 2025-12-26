@@ -277,4 +277,27 @@ export const auditLogAPI = {
   exportAuditLogs: (params) => api.get('/audit-logs/export', { params }),
 };
 
+// Income API - Financial Governance
+export const incomeAPI = {
+  getIncomes: (params) => api.get('/income', { params }),
+  getIncomeById: (id) => api.get(`/income/${id}`),
+  getIncomeStats: (params) => api.get('/income/stats', { params }),
+  createIncome: (data) => api.post('/income', data),
+  updateIncome: (id, data) => api.put(`/income/${id}`, data),
+  verifyIncome: (id, data) => api.put(`/income/${id}/verify`, data),
+  deleteIncome: (id) => api.delete(`/income/${id}`)
+};
+
+// Financial Year API - Financial Governance
+export const financialYearAPI = {
+  getFinancialYears: (params) => api.get('/financial-years', { params }),
+  getActiveYear: () => api.get('/financial-years/active'),
+  getYearById: (id) => api.get(`/financial-years/${id}`),
+  getYearSummary: (id) => api.get(`/financial-years/${id}/summary`),
+  createYear: (data) => api.post('/financial-years', data),
+  lockYear: (id, data) => api.put(`/financial-years/${id}/lock`, data),
+  closeYear: (id, data) => api.put(`/financial-years/${id}/close`, data),
+  recalculateTotals: (id) => api.put(`/financial-years/${id}/recalculate`)
+};
+
 export default api;

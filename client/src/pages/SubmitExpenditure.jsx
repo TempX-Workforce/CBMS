@@ -76,7 +76,8 @@ const SubmitExpenditure = () => {
       const currentYear = getCurrentFinancialYear();
       const response = await allocationAPI.getAllocations({
         financialYear: currentYear,
-        departmentId: user.department
+        department: user.department?._id || user.department,
+        limit: 1000
       });
       setAllocations(response.data.data.allocations);
     } catch (error) {
@@ -245,7 +246,7 @@ const SubmitExpenditure = () => {
 
   return (
     <div className="submit-expenditure-container">
-      <PageHeader 
+      <PageHeader
         title="Submit Expenditure"
         subtitle="Submit a new expenditure request for approval"
       />

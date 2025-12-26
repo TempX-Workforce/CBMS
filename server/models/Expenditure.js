@@ -120,6 +120,7 @@ expenditureSchema.index({ billDate: 1 });
 // Compound index for department submissions
 expenditureSchema.index({ department: 1, status: 1 });
 expenditureSchema.index({ department: 1, financialYear: 1 });
+expenditureSchema.index({ department: 1, billNumber: 1, financialYear: 1 }, { unique: true });
 
 // Pre-save middleware to set financial year based on bill date
 expenditureSchema.pre('save', function (next) {

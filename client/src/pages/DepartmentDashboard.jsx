@@ -48,9 +48,9 @@ const DepartmentDashboard = () => {
       setLoading(true);
 
       const [allocationsResponse, expendituresResponse, statsResponse] = await Promise.all([
-        allocationAPI.getAllocations({ department: user.department._id }),
-        expenditureAPI.getExpenditures({ department: user.department._id }),
-        allocationAPI.getAllocationStats({ department: user.department._id })
+        allocationAPI.getAllocations({ department: user.department?._id || user.department }),
+        expenditureAPI.getExpenditures({ department: user.department?._id || user.department }),
+        allocationAPI.getAllocationStats({ department: user.department?._id || user.department })
       ]);
 
       setAllocations(allocationsResponse.data.data.allocations);
@@ -163,7 +163,7 @@ const DepartmentDashboard = () => {
 
   return (
     <div className="department-dashboard-container">
-      <PageHeader 
+      <PageHeader
         title="Department Dashboard"
         subtitle="Budget overview and expenditure tracking for your department"
       />

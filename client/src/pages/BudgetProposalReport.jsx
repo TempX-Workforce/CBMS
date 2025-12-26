@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { reportAPI, departmentsAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { reportAPI, departmentsAPI, budgetProposalAPI } from '../services/api';
 import PageHeader from '../components/Common/PageHeader';
 import StatCard from '../components/Common/StatCard';
-import { FileText, RotateCw, Download, CheckCircle, Clock, XCircle, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { FileText, RotateCw, Download, CheckCircle, Clock, XCircle, ShieldCheck, ArrowUpRight, Check, X } from 'lucide-react';
 import './BudgetProposalReport.css';
 
 const BudgetProposalReport = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [report, setReport] = useState(null);
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -215,6 +217,37 @@ const BudgetProposalReport = () => {
                                                 {new Date(p.updatedAt).toLocaleDateString()}
                                             </td>
                                             <td className="text-center">
+                                                {(p.status === 'submitted' || p.status === 'verified') && ['admin', 'office', 'principal', 'vice_principal'].includes(user?.role) && (
+                                                    <div className="action-buttons">
+                                                        <button
+                                                            className="btn-action approve"
+                                                            onClick={async () => {
+                                                                if (window.confirm('Approve this budget proposal?')) {
+                                                                    await budgetProposalAPI.approveBudgetProposal(p._id, { notes: 'Approved from report' });
+                                                                    fetchReport();
+                                                                }
+                                                            }}
+                                                            title="Approve"
+                                                            style={{ backgroundColor: '#28a745', color: 'white', marginRight: '4px' }}
+                                                        >
+                                                            <Check size={16} /> Approve
+                                                        </button>
+                                                        <button
+                                                            className="btn-action reject"
+                                                            onClick={async () => {
+                                                                const reason = prompt('Enter rejection reason:');
+                                                                if (reason) {
+                                                                    await budgetProposalAPI.rejectBudgetProposal(p._id, { rejectionReason: reason });
+                                                                    fetchReport();
+                                                                }
+                                                            }}
+                                                            title="Reject"
+                                                            style={{ backgroundColor: '#dc3545', color: 'white' }}
+                                                        >
+                                                            <X size={16} /> Reject
+                                                        </button>
+                                                    </div>
+                                                )}
                                                 {p.status === 'approved' && (
                                                     <button
                                                         className="btn-action allocate"

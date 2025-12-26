@@ -38,7 +38,20 @@ const auditLogSchema = new mongoose.Schema({
       'budget_proposal_approved',
       'budget_proposal_rejected',
       'budget_proposal_deleted',
-      'password_reset'
+      'password_reset',
+      'income_created',
+      'income_updated',
+      'income_verified',
+      'income_deleted',
+      'financial_year_created',
+      'financial_year_locked',
+      'financial_year_closed',
+      'allocation_amendment_requested',
+      'allocation_amendment_approved',
+      'allocation_amendment_rejected',
+      'budget_override_requested',
+      'budget_override_approved',
+      'budget_override_rejected'
     ]
   },
   actor: {

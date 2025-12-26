@@ -20,7 +20,7 @@ const BudgetProposalForm = () => {
   const [success, setSuccess] = useState(null);
   const [formData, setFormData] = useState({
     financialYear: '2025-2026',
-    department: user?.department || '',
+    department: user?.department?._id || user?.department || '',
     proposalItems: [{ budgetHead: '', proposedAmount: '', justification: '', previousYearUtilization: '' }],
     notes: ''
   });

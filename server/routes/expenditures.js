@@ -47,12 +47,12 @@ router.post('/:id/resubmit',
   resubmitExpenditure
 );
 
-// Verify expenditure (HOD only)
-router.put('/:id/verify', authorize('hod'), verifyExpenditure);
+// Verify expenditure (HOD, Office)
+router.put('/:id/verify', authorize('hod', 'office'), verifyExpenditure);
 
-// Approve expenditure (Vice Principal, Principal)
+// Approve expenditure (Office, Vice Principal, Principal)
 router.put('/:id/approve',
-  authorize('vice_principal', 'principal'),
+  authorize('office', 'vice_principal', 'principal'),
   validateAttachmentsForApproval,
   approveExpenditure
 );

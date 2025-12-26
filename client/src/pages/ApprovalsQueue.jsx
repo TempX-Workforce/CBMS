@@ -303,6 +303,32 @@ const ApprovalsQueue = () => {
             </div>
             <div className="modal-body">
               <p>Are you sure you want to {actionType} <strong>{selectedItem?.reference}</strong>?</p>
+
+              {selectedItem?.approvalSteps?.length > 0 && (
+                <div className="approval-history" style={{ margin: '1rem 0', padding: '0.75rem', background: '#f8f9fa', borderRadius: '4px', fontSize: '0.85rem' }}>
+                  <strong style={{ display: 'block', marginBottom: '0.5rem', color: '#495057' }}>Activity History:</strong>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6c757d' }}></span>
+                      <span style={{ color: '#6c757d' }}>Submitted</span>
+                      <span style={{ color: '#adb5bd', fontSize: '0.8rem' }}>
+                        {new Date(selectedItem.submittedAt || selectedItem.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {selectedItem.approvalSteps.map((step, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: step.decision === 'reject' ? '#dc3545' : '#28a745' }}></span>
+                        <span>
+                          <strong>{step.decision === 'verify' ? 'Verified' : step.decision === 'approve' ? 'Approved' : step.decision}</strong>
+                          <span style={{ color: '#6c757d', marginLeft: '4px' }}>by {step.role?.toUpperCase()}</span>
+                        </span>
+                        <span style={{ color: '#adb5bd', fontSize: '0.8rem' }}>({new Date(step.timestamp).toLocaleDateString()})</span>
+                        {step.remarks && <span style={{ fontStyle: 'italic', color: '#6c757d' }}>- "{step.remarks}"</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="form-group" style={{ marginTop: '1rem' }}>
                 <label className="form-label">
                   Remarks {actionType === 'reject' && <span style={{ color: 'red' }}>*</span>}
