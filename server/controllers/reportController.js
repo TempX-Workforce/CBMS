@@ -305,8 +305,27 @@ const getDashboardReport = async (req, res) => {
         approved: 0,
         rejected: 0
       },
+      dailyTotal: 0,
+      dailyDepartmentBreakdown: {},
       yearComparison: null
     };
+
+    // Calculate daily metrics (for today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const dailyExpenditures = expenditures.filter(exp => {
+      const billDate = new Date(exp.billDate);
+      return billDate >= today && billDate < tomorrow && ['approved', 'finalized'].includes(exp.status);
+    });
+
+    consolidated.dailyTotal = dailyExpenditures.reduce((sum, exp) => sum + exp.billAmount, 0);
+    dailyExpenditures.forEach(exp => {
+      const deptName = exp.department.name;
+      consolidated.dailyDepartmentBreakdown[deptName] = (consolidated.dailyDepartmentBreakdown[deptName] || 0) + exp.billAmount;
+    });
 
     // Calculate utilization percentage
     if (consolidated.totalAllocated > 0) {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     allocationAPI,
@@ -14,7 +14,7 @@ import Tooltip from '../components/Tooltip/Tooltip';
 import PageHeader from '../components/Common/PageHeader';
 import StatCard from '../components/Common/StatCard';
 import {
-    Plus, IndianRupee, CreditCard, Wallet, PieChart, Pencil, Trash2, X,
+    Plus, IndianRupee, CreditCard, Wallet, PieChart as PieChartIcon, Pencil, Trash2, X,
     Tag, AlertCircle, Save, AlignLeft, Hash, ArrowLeft, Eye, CheckCircle,
     XCircle, Clock, DollarSign, Send, Check, RefreshCcw, ShieldCheck,
     TrendingUp, TrendingDown, FileText, RotateCw, Download, ArrowUpRight, Search
@@ -160,7 +160,7 @@ export const BudgetAllocations = () => {
                     </div>
                     <div className="stat-card">
                         <div className="stat-icon">
-                            <PieChart size={32} />
+                            <PieChartIcon size={32} />
                         </div>
                         <div className="stat-info">
                             <div className="stat-number">{stats.summary?.utilizationPercentage || '0'}%</div>
@@ -785,12 +785,143 @@ export const BudgetProposalForm = () => {
     const [fetching, setFetching] = useState(isEditMode);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [lastRefreshed, setLastRefreshed] = useState(new Date());
+    const [showApprovalModal, setShowApprovalModal] = useState(false);
+    const [allDepartmentsStats, setAllDepartmentsStats] = useState([]);
+    const [loadingStats, setLoadingStats] = useState(false);
     const [formData, setFormData] = useState({
         financialYear: '2025-2026',
         department: user?.department?._id || user?.department || '',
-        proposalItems: [{ budgetHead: '', proposedAmount: '', justification: '', previousYearUtilization: '' }],
+        proposalItems: [{
+            budgetHead: '',
+            proposedAmount: '',
+            justification: '',
+            previousYearUtilization: '',
+            prevYearAllocated: 0,
+            prevYearSpent: 0,
+            currentYearSpent: 0
+        }],
         notes: ''
     });
+
+    const fetchBudgetStats = useCallback(async (budgetHeadId, departmentId, itemIndex) => {
+        try {
+            // Calculate years based on proposal financial year
+            // Example: If proposal is for 2025-2026
+            // Current Running Year = 2024-2025
+            // Previous Year = 2023-2024
+            const proposalFY = formData.financialYear;
+            const [proposalStart] = proposalFY.split('-');
+
+            const today = new Date();
+            const currentMonth = today.getMonth() + 1;
+            const currentYear = today.getFullYear();
+            const actualCurrentFY = currentMonth >= 4 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+
+            const prevYearStart = (parseInt(proposalStart) - 2);
+            const prevFY = `${prevYearStart}-${parseInt(proposalStart) - 1}`;
+
+            console.log(`[Stats] Fetching for Prop: ${proposalFY}, Actual Cur: ${actualCurrentFY}, Prev: ${prevFY}`);
+
+            // Fetch allocations for previous year (specific budget head) 
+            // and actual expenditures for current year (DEPARTMENT TOTAL)
+            const [currentDepartmentExpResponse, prevAllocResponse] = await Promise.all([
+                expenditureAPI.getExpenditures({
+                    department: departmentId,
+                    financialYear: actualCurrentFY,
+                    limit: 2000 // Get all items to sum for the whole department
+                }),
+                allocationAPI.getAllocations({
+                    department: departmentId,
+                    budgetHead: budgetHeadId,
+                    financialYear: prevFY
+                })
+            ]);
+
+            const currentDeptExpenditures = currentDepartmentExpResponse.data.data.expenditures;
+            const prevAllocations = prevAllocResponse.data.data.allocations;
+
+            console.log(`[Stats Debug] Expenditures found: ${currentDeptExpenditures?.length || 0}`);
+            if (currentDeptExpenditures?.length > 0) {
+                console.log(`[Stats Debug] First expenditure amount: ${currentDeptExpenditures[0].billAmount}, status: ${currentDeptExpenditures[0].status}`);
+            }
+
+            const stats = {
+                currentYearSpent: 0,
+                prevYearAllocated: 0,
+                prevYearSpent: 0
+            };
+
+            if (currentDeptExpenditures && currentDeptExpenditures.length > 0) {
+                // Sum billAmount from ALL departmental expenditures for current year
+                stats.currentYearSpent = currentDeptExpenditures.reduce((sum, e) => {
+                    const amount = parseFloat(e.billAmount) || 0;
+                    return sum + amount;
+                }, 0);
+                console.log(`[Stats Debug] Final calculated currentYearSpent: ${stats.currentYearSpent}`);
+            }
+
+            if (prevAllocations && prevAllocations.length > 0) {
+                stats.prevYearAllocated = prevAllocations.reduce((sum, a) => sum + (a.allocatedAmount || 0), 0);
+                stats.prevYearSpent = prevAllocations.reduce((sum, a) => sum + (a.spentAmount || 0), 0);
+            }
+
+            // Update state
+            setFormData(prev => {
+                const newItems = [...prev.proposalItems];
+                if (newItems[itemIndex]) {
+                    newItems[itemIndex] = {
+                        ...newItems[itemIndex],
+                        prevYearAllocated: stats.prevYearAllocated,
+                        prevYearSpent: stats.prevYearSpent,
+                        currentYearSpent: stats.currentYearSpent,
+                        // Persist spent in previous year utilization field if it's currently empty
+                        previousYearUtilization: stats.prevYearSpent || newItems[itemIndex].previousYearUtilization
+                    };
+                }
+                return { ...prev, proposalItems: newItems };
+            });
+
+        } catch (err) {
+            console.error('Could not fetch budget stats:', err.message);
+        }
+    }, [formData.financialYear]);
+
+    const refreshAllStats = useCallback(async () => {
+        try {
+            setRefreshing(true);
+            // Refresh stats for all items that have a budget head selected
+            const promises = formData.proposalItems
+                .map((item, index) => {
+                    if (item.budgetHead && formData.department) {
+                        return fetchBudgetStats(item.budgetHead, formData.department, index);
+                    }
+                    return Promise.resolve();
+                })
+                .filter(p => p !== undefined);
+
+            await Promise.all(promises);
+            setLastRefreshed(new Date());
+            console.log('[Stats] All expenditure amounts refreshed');
+        } catch (err) {
+            console.error('Error refreshing stats:', err.message);
+        } finally {
+            setRefreshing(false);
+        }
+    }, [formData.proposalItems, formData.department, fetchBudgetStats]);
+
+    useEffect(() => {
+        const fetchDepartments = async () => {
+            try {
+                const response = await departmentsAPI.getDepartments();
+                setDepartments(response.data.data.departments);
+            } catch (err) {
+                console.error('Error fetching departments:', err);
+            }
+        };
+        fetchDepartments();
+    }, []);
 
     useEffect(() => {
         if (formData.department && !isEditMode) {
@@ -798,15 +929,51 @@ export const BudgetProposalForm = () => {
         }
     }, [formData.department, isEditMode]);
 
-    const fetchInitialData = async () => {
-        try {
-            const deptResponse = await departmentsAPI.getDepartments();
-            setDepartments(deptResponse.data.data.departments);
-        } catch (err) {
-            console.error('Error fetching initial data:', err);
-            setError('Failed to fetch departments');
+    // (moved) Auto-refresh hook will be defined after refreshAllStats to avoid temporal-deadzone
+
+    useEffect(() => {
+        if (isEditMode) {
+            const fetchProposal = async () => {
+                try {
+                    setFetching(true);
+                    const response = await budgetProposalAPI.getBudgetProposalById(id);
+                    const proposal = response.data.data.proposal;
+
+                    // Fetch budget heads for this department
+                    if (proposal.department && proposal.department._id) {
+                        await fetchBudgetHeads(proposal.department._id);
+                    }
+
+                    const items = proposal.proposalItems.map(item => ({
+                        budgetHead: item.budgetHead._id,
+                        proposedAmount: item.proposedAmount,
+                        justification: item.justification,
+                        previousYearUtilization: item.previousYearUtilization || 0
+                    }));
+
+                    setFormData({
+                        financialYear: proposal.financialYear,
+                        department: proposal.department._id,
+                        proposalItems: items,
+                        notes: proposal.notes || ''
+                    });
+
+                    // Auto-fetch budget stats if not available
+                    items.forEach((item, index) => {
+                        if (item.budgetHead && (!item.prevYearAllocated || !item.currentYearSpent)) {
+                            fetchBudgetStats(item.budgetHead, proposal.department._id, index);
+                        }
+                    });
+                } catch (err) {
+                    setError('Failed to fetch proposal');
+                    console.error('Error fetching proposal:', err);
+                } finally {
+                    setFetching(false);
+                }
+            };
+            fetchProposal();
         }
-    };
+    }, [id, isEditMode, fetchBudgetStats]);
 
     const fetchBudgetHeads = async (departmentId) => {
         try {
@@ -814,45 +981,6 @@ export const BudgetProposalForm = () => {
             setBudgetHeads(response.data.data.budgetHeads);
         } catch (err) {
             console.error('Error fetching budget heads:', err);
-        }
-    };
-
-    const fetchProposal = async () => {
-        try {
-            setFetching(true);
-            const response = await budgetProposalAPI.getBudgetProposalById(id);
-            const proposal = response.data.data.proposal;
-
-            // Fetch budget heads for this department
-            if (proposal.department && proposal.department._id) {
-                await fetchBudgetHeads(proposal.department._id);
-            }
-
-            const items = proposal.proposalItems.map(item => ({
-                budgetHead: item.budgetHead._id,
-                proposedAmount: item.proposedAmount,
-                justification: item.justification,
-                previousYearUtilization: item.previousYearUtilization || 0
-            }));
-
-            setFormData({
-                financialYear: proposal.financialYear,
-                department: proposal.department._id,
-                proposalItems: items,
-                notes: proposal.notes || ''
-            });
-
-            // Auto-fetch previous year utilization if not available
-            items.forEach((item, index) => {
-                if (item.budgetHead && item.previousYearUtilization === 0) {
-                    fetchPreviousYearUtilization(item.budgetHead, proposal.department._id, index);
-                }
-            });
-        } catch (err) {
-            setError('Failed to fetch proposal');
-            console.error('Error fetching proposal:', err);
-        } finally {
-            setFetching(false);
         }
     };
 
@@ -873,6 +1001,69 @@ export const BudgetProposalForm = () => {
         }
     };
 
+    const handleOpenApprovalModal = async () => {
+        setLoadingStats(true);
+        try {
+            const today = new Date();
+            const currentMonth = today.getMonth() + 1;
+            const currentYear = today.getFullYear();
+            const actualCurrentFY = currentMonth >= 4 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+            
+            const proposalFY = formData.financialYear;
+            const [proposalStart] = proposalFY.split('-');
+            const prevYearStart = (parseInt(proposalStart) - 2);
+            const prevFY = `${prevYearStart}-${parseInt(proposalStart) - 1}`;
+
+            const stats = [];
+            for (const dept of departments) {
+                try {
+                    const [currentDeptExpResponse, prevAllocResponse] = await Promise.all([
+                        expenditureAPI.getExpenditures({
+                            department: dept._id,
+                            financialYear: actualCurrentFY,
+                            limit: 2000
+                        }),
+                        allocationAPI.getAllocations({
+                            department: dept._id,
+                            financialYear: prevFY
+                        })
+                    ]);
+
+                    const currentDeptExpenditures = currentDeptExpResponse.data.data.expenditures || [];
+                    const prevAllocations = prevAllocResponse.data.data.allocations || [];
+
+                    const currentYearSpent = currentDeptExpenditures.reduce((sum, e) => {
+                        const amount = parseFloat(e.billAmount) || 0;
+                        return sum + amount;
+                    }, 0);
+
+                    const prevYearAllocated = prevAllocations.reduce((sum, a) => sum + (a.allocatedAmount || 0), 0);
+                    const prevYearSpent = prevAllocations.reduce((sum, a) => sum + (a.spentAmount || 0), 0);
+                    const prevYearBalance = prevYearAllocated - prevYearSpent;
+
+                    stats.push({
+                        departmentId: dept._id,
+                        departmentName: dept.name,
+                        departmentCode: dept.code,
+                        prevYearAllocated,
+                        prevYearSpent,
+                        prevYearBalance,
+                        currentYearSpent
+                    });
+                } catch (err) {
+                    console.error(`Error fetching stats for ${dept.name}:`, err);
+                }
+            }
+            setAllDepartmentsStats(stats);
+            setShowApprovalModal(true);
+        } catch (err) {
+            console.error('Error fetching approval stats:', err);
+            setError('Failed to fetch department statistics');
+        } finally {
+            setLoadingStats(false);
+        }
+    };
+
     const handleItemChange = (index, field, value) => {
         const newItems = [...formData.proposalItems];
         newItems[index] = {
@@ -880,9 +1071,9 @@ export const BudgetProposalForm = () => {
             [field]: value
         };
 
-        // Auto-fetch previous year utilization if budget head is selected
+        // Auto-fetch budget stats if budget head is selected
         if (field === 'budgetHead' && value && formData.department) {
-            fetchPreviousYearUtilization(value, formData.department, index);
+            fetchBudgetStats(value, formData.department, index);
         }
 
         setFormData(prev => ({
@@ -891,57 +1082,31 @@ export const BudgetProposalForm = () => {
         }));
     };
 
-    const fetchPreviousYearUtilization = async (budgetHeadId, departmentId, itemIndex) => {
-        try {
-            // Get current financial year from formData
-            const currentFY = formData.financialYear;
-            const [currentStart] = currentFY.split('-');
-            const prevYear = (parseInt(currentStart) - 1).toString();
-            const prevFY = `${prevYear}-${currentStart}`;
-
-            // Fetch expenditures from previous financial year
-            const response = await expenditureAPI.getExpenditures({
-                department: departmentId,
-                budgetHead: budgetHeadId,
-                financialYear: prevFY,
-                status: 'approved',
-                limit: 1000
-            });
-
-            if (response.data.data.expenditures && response.data.data.expenditures.length > 0) {
-                // Calculate total amount spent in previous year
-                const totalUtilized = response.data.data.expenditures.reduce((sum, exp) => {
-                    return sum + (exp.amount || 0);
-                }, 0);
-
-                // Update the previous year utilization field using functional state update
-                setFormData(prev => {
-                    const newItems = [...prev.proposalItems];
-                    // Ensure the item still exists and hasn't been removed
-                    if (newItems[itemIndex]) {
-                        newItems[itemIndex] = {
-                            ...newItems[itemIndex],
-                            previousYearUtilization: totalUtilized
-                        };
-                    }
-                    return {
-                        ...prev,
-                        proposalItems: newItems
-                    };
-                });
+    // Auto-refresh current year spent amounts every 30 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (formData.department && formData.proposalItems.some(item => item.budgetHead)) {
+                refreshAllStats();
             }
-        } catch (err) {
-            // If error fetching previous year data, just continue without it
-            console.log('Could not fetch previous year utilization:', err.message);
-        }
-    };
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, [formData.department, formData.proposalItems, refreshAllStats]);
 
     const addItem = () => {
         setFormData(prev => ({
             ...prev,
             proposalItems: [
                 ...prev.proposalItems,
-                { budgetHead: '', proposedAmount: '', justification: '', previousYearUtilization: '' }
+                {
+                    budgetHead: '',
+                    proposedAmount: '',
+                    justification: '',
+                    previousYearUtilization: '',
+                    prevYearAllocated: 0,
+                    prevYearSpent: 0,
+                    currentYearSpent: 0
+                }
             ]
         }));
     };
@@ -1036,29 +1201,6 @@ export const BudgetProposalForm = () => {
         }, 0);
     };
 
-    const handleDelete = async () => {
-        if (!window.confirm('Are you sure you want to delete this budget proposal? This action cannot be undone.')) {
-            return;
-        }
-
-        try {
-            setLoading(true);
-            await budgetProposalAPI.deleteBudgetProposal(id);
-            setSuccess('Budget proposal deleted successfully');
-            setTimeout(() => {
-                navigate('/budget-proposals');
-            }, 1500);
-        } catch (err) {
-            if (err.response?.status === 401 || err.response?.status === 403) {
-                setError('Authentication failed. Please log in again.');
-            } else {
-                setError(err.response?.data?.message || 'Error deleting budget proposal');
-            }
-            console.error('Error deleting proposal:', err);
-            setLoading(false);
-        }
-    };
-
     if (fetching) {
         return (
             <div className="budget-proposal-form-container">
@@ -1084,6 +1226,22 @@ export const BudgetProposalForm = () => {
                 title={isEditMode ? 'Edit Budget Proposal' : 'Create Budget Proposal'}
                 subtitle="Propose budget requirements for your department"
             >
+                <button
+                    type="button"
+                    className="btn btn-info"
+                    onClick={refreshAllStats}
+                    disabled={refreshing || !formData.proposalItems.some(item => item.budgetHead)}
+                    title="Refresh current year expenditure amounts"
+                    style={{ marginRight: '8px' }}
+                >
+                    <RotateCw size={18} style={{ marginRight: '6px' }} />
+                    {refreshing ? 'Refreshing...' : 'Refresh Amounts'}
+                </button>
+                {lastRefreshed && (
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginRight: '12px' }}>
+                        Last refreshed: {lastRefreshed.toLocaleTimeString()}
+                    </span>
+                )}
                 <button
                     type="button"
                     className="btn btn-secondary"
@@ -1120,7 +1278,7 @@ export const BudgetProposalForm = () => {
                                 value={formData.department}
                                 onChange={handleInputChange}
                                 required
-                                disabled={isEditMode || ['department', 'hod'].includes(user?.role)}
+                                disabled={isEditMode || ['department', 'hod', 'officer', 'vp', 'p'].includes(user?.role)}
                             >
                                 <option value="">Select Department</option>
                                 {departments.map(dept => (
@@ -1140,6 +1298,8 @@ export const BudgetProposalForm = () => {
                             onChange={handleInputChange}
                             placeholder="Additional notes for the proposal"
                             rows="3"
+                            disabled={isEditMode && ['hod', 'officer', 'vp', 'p'].includes(user?.role)}
+                            style={isEditMode && ['hod', 'officer', 'vp', 'p'].includes(user?.role) ? { opacity: 0.6 } : {}}
                         />
                     </div>
                 </div>
@@ -1178,6 +1338,7 @@ export const BudgetProposalForm = () => {
                                         value={item.budgetHead}
                                         onChange={(e) => handleItemChange(index, 'budgetHead', e.target.value)}
                                         required
+                                        disabled={isEditMode && ['hod', 'officer', 'vp', 'p'].includes(user?.role)}
                                     >
                                         <option value="">Select Budget Head</option>
                                         {budgetHeads.map(head => (
@@ -1198,19 +1359,80 @@ export const BudgetProposalForm = () => {
                                         min="0"
                                         step="0.01"
                                         required
+                                        disabled={isEditMode && ['hod', 'officer', 'vp', 'p'].includes(user?.role)}
                                     />
                                 </div>
 
-                                <div className="form-group">
-                                    <label>Previous Year Utilization (₹)</label>
-                                    <input
-                                        type="number"
-                                        value={item.previousYearUtilization}
-                                        onChange={(e) => handleItemChange(index, 'previousYearUtilization', e.target.value)}
-                                        placeholder="0"
-                                        min="0"
-                                        step="0.01"
-                                    />
+                                <div className="form-group stats-group" style={{ flex: '1 1 100%', marginTop: '0.5rem' }}>
+                                    <div className="expenditure-stats" style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                        gap: '1rem',
+                                        padding: '1rem',
+                                        background: 'rgba(var(--primary-rgb), 0.03)',
+                                        border: '1px border var(--border-color)',
+                                        borderRadius: '8px',
+                                        fontSize: '0.9rem'
+                                    }}>
+                                        <div className="stat-item">
+                                            <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.8rem', fontWeight: '500' }}>
+                                                Prev. Year Allocated Amount
+                                            </label>
+                                            <span style={{ fontWeight: '600', color: 'var(--primary)', fontSize: '1rem' }}>
+                                                ₹{(item.prevYearAllocated || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div className="stat-item">
+                                            <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.8rem', fontWeight: '500' }}>
+                                                Prev. Year Spent Amount
+                                            </label>
+                                            <span style={{ fontWeight: '600', color: 'var(--danger)', fontSize: '1rem' }}>
+                                                ₹{(item.prevYearSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div className="stat-item">
+                                            <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.8rem', fontWeight: '500' }}>
+                                                Prev. Year Balance (Remaining)
+                                            </label>
+                                            <span style={{ fontWeight: '600', color: 'var(--success)', fontSize: '1rem' }}>
+                                                ₹{(((item.prevYearAllocated || 0) - (item.prevYearSpent || 0))).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div className="stat-item">
+                                            <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.8rem', fontWeight: '500' }}>
+                                                Current Year Spent Amount (Department)
+                                            </label>
+                                            <span style={{ fontWeight: '600', color: 'var(--warning)', fontSize: '1rem' }}>
+                                                ₹{(item.currentYearSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div className="stat-item">
+                                            <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.8rem', fontWeight: '500' }}>
+                                                Prev. Year Utilization (To be saved)
+                                            </label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ color: 'var(--text-secondary)' }}>₹</span>
+                                                <input
+                                                    type="number"
+                                                    value={item.previousYearUtilization}
+                                                    onChange={(e) => handleItemChange(index, 'previousYearUtilization', e.target.value)}
+                                                    placeholder="0"
+                                                    min="0"
+                                                    step="0.01"
+                                                    disabled={['hod', 'officer', 'vp', 'p'].includes(user?.role)}
+                                                    style={{
+                                                        height: '32px',
+                                                        padding: '4px 8px',
+                                                        width: '120px',
+                                                        border: '1px solid var(--border-color)',
+                                                        borderRadius: '4px',
+                                                        opacity: ['hod', 'officer', 'vp', 'p'].includes(user?.role) ? 0.6 : 1,
+                                                        cursor: ['hod', 'officer', 'vp', 'p'].includes(user?.role) ? 'not-allowed' : 'auto'
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1222,6 +1444,8 @@ export const BudgetProposalForm = () => {
                                     placeholder="Explain why this budget is needed"
                                     rows="3"
                                     required
+                                    disabled={isEditMode && ['hod', 'officer', 'vp', 'p'].includes(user?.role)}
+                                    style={isEditMode && ['hod', 'officer', 'vp', 'p'].includes(user?.role) ? { opacity: 0.6 } : {}}
                                 />
                             </div>
                         </div>
@@ -1248,6 +1472,17 @@ export const BudgetProposalForm = () => {
                     >
                         <Save size={18} /> {loading ? 'Saving...' : isEditMode ? 'Update Draft' : 'Save as Draft'}
                     </button>
+                    {['hod', 'officer', 'vp', 'p'].includes(user?.role) && isEditMode && (
+                        <button
+                            type="button"
+                            className="btn btn-info"
+                            onClick={handleOpenApprovalModal}
+                            disabled={loadingStats}
+                            style={{ color: 'white' }}
+                        >
+                            {loadingStats ? 'Loading...' : 'View All Departments Stats'}
+                        </button>
+                    )}
                     <button
                         type="button"
                         className="btn btn-success"
@@ -1258,6 +1493,106 @@ export const BudgetProposalForm = () => {
                         <Send size={18} /> {loading ? 'Submitting...' : 'Save & Submit'}
                     </button>
                 </div>
+
+                {/* Approval Modal for viewing all departments' stats */}
+                {showApprovalModal && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000
+                    }}>
+                        <div style={{
+                            backgroundColor: 'white',
+                            borderRadius: '8px',
+                            padding: '2rem',
+                            maxWidth: '90%',
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h2>All Departments - Budget Statistics</h2>
+                                <button
+                                    onClick={() => setShowApprovalModal(false)}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        fontSize: '1.5rem',
+                                        cursor: 'pointer',
+                                        color: '#666'
+                                    }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                                gap: '1.5rem'
+                            }}>
+                                {allDepartmentsStats.map((deptStat) => (
+                                    <div key={deptStat.departmentId} style={{
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: '8px',
+                                        padding: '1.5rem',
+                                        background: 'rgba(var(--primary-rgb), 0.02)'
+                                    }}>
+                                        <h4 style={{ marginBottom: '1rem', color: 'var(--primary)' }}>
+                                            {deptStat.departmentName} ({deptStat.departmentCode})
+                                        </h4>
+                                        
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Prev. Year Allocated Amount</span>
+                                                <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
+                                                    ₹{(deptStat.prevYearAllocated || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Prev. Year Spent Amount</span>
+                                                <span style={{ fontWeight: '600', color: 'var(--danger)' }}>
+                                                    ₹{(deptStat.prevYearSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Prev. Year Balance (Remaining)</span>
+                                                <span style={{ fontWeight: '600', color: 'var(--success)' }}>
+                                                    ₹{(deptStat.prevYearBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Current Year Spent Amount</span>
+                                                <span style={{ fontWeight: '600', color: 'var(--warning)' }}>
+                                                    ₹{(deptStat.currentYearSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+                                <button
+                                    onClick={() => setShowApprovalModal(false)}
+                                    className="btn btn-secondary"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </form>
         </div>
     );
@@ -1274,6 +1609,10 @@ export const BudgetProposalReport = () => {
         department: '',
         status: ''
     });
+    const [showApprovalDetailsModal, setShowApprovalDetailsModal] = useState(false);
+    const [approvalDetails, setApprovalDetails] = useState(null);
+    const [pendingAction, setPendingAction] = useState(null);
+    const [loadingStats, setLoadingStats] = useState(false);
 
     const fetchDepartments = useCallback(async () => {
         try {
@@ -1305,6 +1644,59 @@ export const BudgetProposalReport = () => {
     useEffect(() => {
         fetchReport();
     }, [fetchReport]);
+
+    const fetchApprovalDetails = async (proposal) => {
+        setLoadingStats(true);
+        try {
+            const today = new Date();
+            const currentMonth = today.getMonth() + 1;
+            const currentYear = today.getFullYear();
+            const actualCurrentFY = currentMonth >= 4 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+            
+            const proposalFY = proposal.financialYear;
+            const [proposalStart] = proposalFY.split('-');
+            const prevYearStart = (parseInt(proposalStart) - 2);
+            const prevFY = `${prevYearStart}-${parseInt(proposalStart) - 1}`;
+
+            const [currentDeptExpResponse, prevAllocResponse] = await Promise.all([
+                expenditureAPI.getExpenditures({
+                    department: proposal.department._id,
+                    financialYear: actualCurrentFY,
+                    limit: 2000
+                }),
+                allocationAPI.getAllocations({
+                    department: proposal.department._id,
+                    financialYear: prevFY
+                })
+            ]);
+
+            const currentDeptExpenditures = currentDeptExpResponse.data.data.expenditures || [];
+            const prevAllocations = prevAllocResponse.data.data.allocations || [];
+
+            const currentYearSpent = currentDeptExpenditures.reduce((sum, e) => {
+                const amount = parseFloat(e.billAmount) || 0;
+                return sum + amount;
+            }, 0);
+
+            const prevYearAllocated = prevAllocations.reduce((sum, a) => sum + (a.allocatedAmount || 0), 0);
+            const prevYearSpent = prevAllocations.reduce((sum, a) => sum + (a.spentAmount || 0), 0);
+            const prevYearBalance = prevYearAllocated - prevYearSpent;
+
+            setApprovalDetails({
+                proposal,
+                prevYearAllocated,
+                prevYearSpent,
+                prevYearBalance,
+                currentYearSpent
+            });
+            setShowApprovalDetailsModal(true);
+        } catch (err) {
+            console.error('Error fetching approval details:', err);
+            setError('Failed to fetch budget details');
+        } finally {
+            setLoadingStats(false);
+        }
+    };
 
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
@@ -1477,10 +1869,8 @@ export const BudgetProposalReport = () => {
                                                         <button
                                                             className="btn-action approve"
                                                             onClick={async () => {
-                                                                if (window.confirm('Approve this budget proposal?')) {
-                                                                    await budgetProposalAPI.approveBudgetProposal(p._id, { notes: 'Approved from report' });
-                                                                    fetchReport();
-                                                                }
+                                                                setPendingAction('approve');
+                                                                await fetchApprovalDetails(p);
                                                             }}
                                                             title="Approve"
                                                             style={{ backgroundColor: '#28a745', color: 'white', marginRight: '4px' }}
@@ -1490,11 +1880,8 @@ export const BudgetProposalReport = () => {
                                                         <button
                                                             className="btn-action reject"
                                                             onClick={async () => {
-                                                                const reason = prompt('Enter rejection reason:');
-                                                                if (reason) {
-                                                                    await budgetProposalAPI.rejectBudgetProposal(p._id, { rejectionReason: reason });
-                                                                    fetchReport();
-                                                                }
+                                                                setPendingAction('reject');
+                                                                await fetchApprovalDetails(p);
                                                             }}
                                                             title="Reject"
                                                             style={{ backgroundColor: '#dc3545', color: 'white' }}
@@ -1524,6 +1911,178 @@ export const BudgetProposalReport = () => {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* Approval Details Modal */}
+            {showApprovalDetailsModal && approvalDetails && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        padding: '2rem',
+                        maxWidth: '600px',
+                        width: '90%',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h2>Budget Details for Approval</h2>
+                            <button
+                                onClick={() => {
+                                    setShowApprovalDetailsModal(false);
+                                    setPendingAction(null);
+                                    setApprovalDetails(null);
+                                }}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    fontSize: '1.5rem',
+                                    cursor: 'pointer',
+                                    color: '#666'
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <h3 style={{ marginBottom: '1rem', color: 'var(--primary)' }}>
+                                {approvalDetails.proposal.department.name}
+                            </h3>
+
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                gap: '1rem',
+                                padding: '1rem',
+                                background: 'rgba(var(--primary-rgb), 0.03)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                marginBottom: '1rem'
+                            }}>
+                                <div style={{ paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                                    <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.8rem', fontWeight: '500' }}>
+                                        Prev. Year Allocated Amount
+                                    </label>
+                                    <span style={{ fontWeight: '600', color: 'var(--primary)', fontSize: '1rem' }}>
+                                        ₹{(approvalDetails.prevYearAllocated || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+
+                                <div style={{ paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                                    <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.8rem', fontWeight: '500' }}>
+                                        Prev. Year Spent Amount
+                                    </label>
+                                    <span style={{ fontWeight: '600', color: 'var(--danger)', fontSize: '1rem' }}>
+                                        ₹{(approvalDetails.prevYearSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+
+                                <div style={{ paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                                    <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.8rem', fontWeight: '500' }}>
+                                        Prev. Year Balance (Remaining)
+                                    </label>
+                                    <span style={{ fontWeight: '600', color: 'var(--success)', fontSize: '1rem' }}>
+                                        ₹{(approvalDetails.prevYearBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+
+                                <div style={{ paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                                    <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '0.25rem', fontSize: '0.8rem', fontWeight: '500' }}>
+                                        Current Year Spent Amount (Department)
+                                    </label>
+                                    <span style={{ fontWeight: '600', color: 'var(--warning)', fontSize: '1rem' }}>
+                                        ₹{(approvalDetails.currentYearSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div style={{ 
+                                padding: '1rem', 
+                                background: 'rgba(var(--info-rgb), 0.05)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '8px',
+                                marginBottom: '1rem'
+                            }}>
+                                <p style={{ margin: '0.5rem 0', color: 'var(--text-secondary)' }}>
+                                    <strong>Proposal Amount:</strong> ₹{(approvalDetails.proposal.totalProposedAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                </p>
+                                <p style={{ margin: '0.5rem 0', color: 'var(--text-secondary)' }}>
+                                    <strong>Items:</strong> {approvalDetails.proposal.proposalItems.length}
+                                </p>
+                                <p style={{ margin: '0.5rem 0', color: 'var(--text-secondary)' }}>
+                                    <strong>Financial Year:</strong> {approvalDetails.proposal.financialYear}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => {
+                                    setShowApprovalDetailsModal(false);
+                                    setPendingAction(null);
+                                    setApprovalDetails(null);
+                                }}
+                                className="btn btn-secondary"
+                                style={{ minWidth: '120px' }}
+                            >
+                                Cancel
+                            </button>
+                            {pendingAction === 'approve' && (
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await budgetProposalAPI.approveBudgetProposal(approvalDetails.proposal._id, { notes: 'Approved from report' });
+                                            setShowApprovalDetailsModal(false);
+                                            setPendingAction(null);
+                                            setApprovalDetails(null);
+                                            fetchReport();
+                                        } catch (err) {
+                                            setError('Failed to approve proposal');
+                                            console.error('Error approving:', err);
+                                        }
+                                    }}
+                                    className="btn btn-success"
+                                    style={{ minWidth: '120px', color: 'white' }}
+                                >
+                                    <Check size={16} /> Confirm Approve
+                                </button>
+                            )}
+                            {pendingAction === 'reject' && (
+                                <button
+                                    onClick={() => {
+                                        const reason = prompt('Enter rejection reason:');
+                                        if (reason) {
+                                            budgetProposalAPI.rejectBudgetProposal(approvalDetails.proposal._id, { rejectionReason: reason }).then(() => {
+                                                setShowApprovalDetailsModal(false);
+                                                setPendingAction(null);
+                                                setApprovalDetails(null);
+                                                fetchReport();
+                                            }).catch(err => {
+                                                setError('Failed to reject proposal');
+                                                console.error('Error rejecting:', err);
+                                            });
+                                        }
+                                    }}
+                                    className="btn btn-danger"
+                                    style={{ minWidth: '120px', color: 'white' }}
+                                >
+                                    <X size={16} /> Confirm Reject
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
@@ -2044,6 +2603,19 @@ export const BudgetUtilizationDashboard = () => {
                             color="var(--primary)"
                         />
                         <StatCard
+                            title="Total Expenditure (FY)"
+                            value={`₹${dashboard.departmentWiseUtilization.reduce((sum, d) => sum + d.totalSpent, 0).toLocaleString('en-IN')}`}
+                            icon={<IndianRupee size={24} />}
+                            color="#17a2b8"
+                        />
+                        <StatCard
+                            title="Today's Expenditure"
+                            value={`₹${dashboard.dailyTotal.toLocaleString('en-IN')}`}
+                            subtitle={new Date().toLocaleDateString('en-IN')}
+                            icon={<Clock size={24} />}
+                            color="#6f42c1"
+                        />
+                        <StatCard
                             title="High Utilization (≥90%)"
                             value={dashboard.departmentsWithHighUtilization}
                             subtitle="Requires attention"
@@ -2058,6 +2630,26 @@ export const BudgetUtilizationDashboard = () => {
                             color="var(--warning)"
                         />
                     </div>
+
+                    {/* Today's Breakdown Section */}
+                    {dashboard.dailyTotal > 0 && (
+                        <div className="report-section daily-breakdown">
+                            <div className="section-header">
+                                <h3 className="flex items-center gap-2">
+                                    <Clock size={20} /> Today's Expenditure Breakdown
+                                </h3>
+                                <span className="total-badge">Total: ₹{dashboard.dailyTotal.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="daily-stats-grid">
+                                {Object.entries(dashboard.dailyDepartmentWise).map(([dept, amount]) => (
+                                    <div key={dept} className="daily-dept-card">
+                                        <div className="dept-name">{dept}</div>
+                                        <div className="dept-amount">₹{amount.toLocaleString('en-IN')}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Charts Section */}
                     <div className="charts-section">

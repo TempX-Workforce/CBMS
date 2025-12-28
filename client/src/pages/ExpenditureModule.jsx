@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     expenditureAPI,
     budgetHeadsAPI,
     allocationAPI,
-    settingsAPI
+    settingsAPI,
+    categoriesAPI
 } from '../services/api';
 import PageHeader from '../components/Common/PageHeader';
 import Tooltip from '../components/Tooltip/Tooltip';
@@ -15,7 +16,6 @@ import {
     Eye,
     FileText,
     AlertCircle,
-    Loader2,
     CheckCircle2,
     Upload,
     X,
@@ -31,9 +31,11 @@ export const Expenditures = () => {
     const [loading, setLoading] = useState(true);
     const [selectedExpenditure, setSelectedExpenditure] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [categories, setCategories] = useState([]);
     const [filters, setFilters] = useState({
         search: '',
         status: '',
+        category: '',
         financialYear: ''
     });
     const [pagination, setPagination] = useState({
@@ -44,7 +46,19 @@ export const Expenditures = () => {
 
     useEffect(() => {
         fetchExpenditures();
+        fetchCategories();
     }, [filters, pagination.current]);
+
+    const fetchCategories = async () => {
+        try {
+            const response = await categoriesAPI.getCategories();
+            if (response.data.success) {
+                setCategories(response.data.data.categories);
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const fetchExpenditures = async () => {
         try {
@@ -119,6 +133,18 @@ export const Expenditures = () => {
                         <option value="rejected">Rejected</option>
                     </select>
                 </div>
+                <div className="filter-group">
+                    <select
+                        className="filter-select"
+                        value={filters.category}
+                        onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value, page: 1 }))}
+                    >
+                        <option value="">All Categories</option>
+                        {categories.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             <div className="table-container">
@@ -128,7 +154,7 @@ export const Expenditures = () => {
                     <div className="empty-state">
                         <div className="empty-icon"><FileText size={48} /></div>
                         <h3>No Expenditures Found</h3>
-                        <p>You haven't submitted any expenditures matching your criteria.</p>
+                        <p>You haven&apos;t submitted any expenditures matching your criteria.</p>
                         <button className="btn btn-primary" onClick={() => navigate('/submit-expenditure')}>
                             Submit New Expenditure
                         </button>
@@ -140,6 +166,7 @@ export const Expenditures = () => {
                                 <tr>
                                     <th>Bill Number</th>
                                     <th>Budget Head</th>
+                                    <th>Category</th>
                                     <th>Party Name</th>
                                     <th>Date</th>
                                     <th>Amount</th>
@@ -152,6 +179,27 @@ export const Expenditures = () => {
                                     <tr key={exp._id}>
                                         <td className="font-medium">{exp.billNumber}</td>
                                         <td>{exp.budgetHead?.name || exp.budgetHeadName}</td>
+                                        <td>
+                                            {(() => {
+                                                const catId = exp.budgetHead?.category || exp.category;
+                                                const cat = categories.find(c => c.id === catId);
+                                                return (
+                                                    <span
+                                                        className="category-badge-simple"
+                                                        style={{
+                                                            backgroundColor: cat?.color || '#6c757d',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '4px',
+                                                            fontSize: '11px',
+                                                            color: 'white',
+                                                            fontWeight: '500'
+                                                        }}
+                                                    >
+                                                        {cat?.code || cat?.name || (catId ? catId.toUpperCase() : 'N/A')}
+                                                    </span>
+                                                );
+                                            })()}
+                                        </td>
                                         <td>{exp.partyName}</td>
                                         <td>{new Date(exp.billDate).toLocaleDateString('en-IN')}</td>
                                         <td className="text-right font-medium">{formatCurrency(exp.billAmount)}</td>
@@ -234,7 +282,12 @@ export const Expenditures = () => {
                                 </div>
                                 <div className="detail-item">
                                     <label>Budget Head</label>
-                                    <div>{selectedExpenditure.budgetHead?.name} ({selectedExpenditure.budgetHead?.category})</div>
+                                    <div>
+                                        {selectedExpenditure.budgetHead?.name}
+                                        <span className="ml-2 text-xs text-muted">
+                                            ({categories.find(c => c.id === (selectedExpenditure.budgetHead?.category || selectedExpenditure.category))?.name || selectedExpenditure.budgetHead?.category || selectedExpenditure.category})
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="detail-item">
                                     <label>Amount</label>
@@ -294,8 +347,10 @@ export const SubmitExpenditure = () => {
     });
 
     const [budgetHeads, setBudgetHeads] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState('');
     const [allocations, setAllocations] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errors, setErrors] = useState({});
     const [remainingBudget, setRemainingBudget] = useState(0);
@@ -308,9 +363,21 @@ export const SubmitExpenditure = () => {
         }
 
         fetchBudgetHeads();
+        fetchCategories();
         fetchAllocations();
         fetchSettings();
     }, [user, navigate]);
+
+    const fetchCategories = async () => {
+        try {
+            const response = await categoriesAPI.getCategories();
+            if (response.data.success) {
+                setCategories(response.data.data.categories.filter(c => c.isActive));
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const fetchSettings = async () => {
         try {
@@ -366,6 +433,22 @@ export const SubmitExpenditure = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+
+        if (name === 'selectedCategory') {
+            setSelectedCategory(value);
+            // Optional: If user manually changes category to something that doesn't 
+            // match current head, we could reset head, but as per user feedback 
+            // "category is sub part", we just allow the selection.
+            return;
+        }
+
+        if (name === 'budgetHeadId') {
+            const selectedHead = budgetHeads.find(h => h._id === value);
+            if (selectedHead) {
+                setSelectedCategory(selectedHead.category);
+            }
+        }
+
         setFormData(prev => ({
             ...prev,
             [name]: value
@@ -434,6 +517,7 @@ export const SubmitExpenditure = () => {
     const validateForm = () => {
         const newErrors = {};
 
+        if (!selectedCategory) newErrors.selectedCategory = 'Category is required';
         if (!formData.budgetHeadId) newErrors.budgetHeadId = 'Budget head is required';
         if (!formData.billNumber.trim()) newErrors.billNumber = 'Bill number is required';
         if (!formData.billDate) newErrors.billDate = 'Bill date is required';
@@ -547,7 +631,7 @@ export const SubmitExpenditure = () => {
                                 <option value="">Select Budget Head</option>
                                 {budgetHeads.map((head) => (
                                     <option key={head._id} value={head._id}>
-                                        {head.name} ({head.category})
+                                        {head.name}
                                     </option>
                                 ))}
                             </select>
@@ -556,6 +640,31 @@ export const SubmitExpenditure = () => {
                             )}
                         </div>
 
+                        <div className="form-group">
+                            <label htmlFor="category" className="form-label">
+                                Category *
+                            </label>
+                            <select
+                                id="selectedCategory"
+                                name="selectedCategory"
+                                value={selectedCategory}
+                                onChange={handleChange}
+                                className={`form-input ${errors.selectedCategory ? 'error' : ''}`}
+                            >
+                                <option value="">Select Category</option>
+                                {categories.map((cat) => (
+                                    <option key={cat.id} value={cat.id}>
+                                        {cat.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {errors.selectedCategory && (
+                                <span className="form-error">{errors.selectedCategory}</span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="form-row">
                         <div className="form-group">
                             <label htmlFor="billNumber" className="form-label">
                                 Bill Number *
@@ -573,9 +682,7 @@ export const SubmitExpenditure = () => {
                                 <span className="form-error">{errors.billNumber}</span>
                             )}
                         </div>
-                    </div>
 
-                    <div className="form-row">
                         <div className="form-group">
                             <label htmlFor="billDate" className="form-label">
                                 Bill Date *
@@ -592,7 +699,9 @@ export const SubmitExpenditure = () => {
                                 <span className="form-error">{errors.billDate}</span>
                             )}
                         </div>
+                    </div>
 
+                    <div className="form-row">
                         <div className="form-group">
                             <label htmlFor="billAmount" className="form-label">
                                 Bill Amount *
@@ -616,6 +725,10 @@ export const SubmitExpenditure = () => {
                                     Remaining budget: {formatCurrency(remainingBudget)}
                                 </span>
                             )}
+                        </div>
+
+                        <div className="form-group">
+                            {/* Spacing for layout consistency */}
                         </div>
                     </div>
 
@@ -756,7 +869,7 @@ export const ResubmitExpenditure = () => {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
     const [expenditure, setExpenditure] = useState(null);
-    const [allocations, setAllocations] = useState([]);
+    const [categories, setCategories] = useState([]);
 
     const [formData, setFormData] = useState({
         billNumber: '',
@@ -773,8 +886,19 @@ export const ResubmitExpenditure = () => {
 
     useEffect(() => {
         fetchExpenditure();
-        fetchAllocations();
-    }, [id]);
+        fetchCategories();
+    }, [id, fetchExpenditure, fetchCategories]);
+
+    const fetchCategories = async () => {
+        try {
+            const response = await categoriesAPI.getCategories();
+            if (response.data.success) {
+                setCategories(response.data.data.categories.filter(c => c.isActive));
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const fetchExpenditure = async () => {
         try {
@@ -802,20 +926,14 @@ export const ResubmitExpenditure = () => {
         }
     };
 
-    const fetchAllocations = async () => {
-        try {
-            const response = await allocationAPI.getAllocations({
-                department: user.department?._id || user.department,
-                limit: 1000
-            });
-            setAllocations(response.data.data.allocations);
-        } catch (err) {
-            console.error('Error fetching allocations:', err);
-        }
-    };
-
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+
+        if (name === 'selectedCategory') {
+            setSelectedCategory(value);
+            return;
+        }
+
         setFormData(prev => ({
             ...prev,
             [name]: value
@@ -871,7 +989,7 @@ export const ResubmitExpenditure = () => {
             formDataToSend.append('remarks', formData.remarks);
 
             // Append files
-            formData.attachments.forEach((file, index) => {
+            formData.attachments.forEach((file) => {
                 formDataToSend.append('attachments', file);
             });
 
@@ -965,6 +1083,22 @@ export const ResubmitExpenditure = () => {
             <form onSubmit={handleSubmit} className="resubmit-form">
                 <div className="form-section">
                     <h3>Expenditure Details</h3>
+
+                    <div className="form-row">
+                        <div className="form-group">
+                            <label htmlFor="budgetHead">Budget Head (Not editable upon resubmission)</label>
+                            <div className="form-input disabled-input">
+                                {expenditure.budgetHeadName}
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="category">Category</label>
+                            <div className="form-input disabled-input">
+                                {categories.find(c => c.id === expenditure?.category || c.id === expenditure?.budgetHead?.category)?.name || expenditure?.category?.toUpperCase() || 'N/A'}
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="form-row">
                         <div className="form-group">
@@ -1102,7 +1236,7 @@ export const ResubmitExpenditure = () => {
                         )}
                     </button>
                 </div>
-            </form>
-        </div>
+            </form >
+        </div >
     );
 };

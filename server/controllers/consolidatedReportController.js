@@ -9,7 +9,7 @@ const BudgetHead = require('../models/BudgetHead');
 const getConsolidatedBudgetReport = async (req, res) => {
   try {
     const { financialYear, previousYear, department } = req.query;
-    
+
     if (!financialYear) {
       return res.status(400).json({
         success: false,
@@ -20,7 +20,7 @@ const getConsolidatedBudgetReport = async (req, res) => {
     // Query filters
     const currentYearQuery = { financialYear };
     const previousYearQuery = { financialYear: previousYear };
-    
+
     if (department) {
       currentYearQuery.department = department;
       previousYearQuery.department = department;
@@ -43,7 +43,7 @@ const getConsolidatedBudgetReport = async (req, res) => {
     currentAllocations.forEach(allocation => {
       const deptName = allocation.department.name;
       const headName = allocation.budgetHead.name;
-      
+
       if (!reportData[deptName]) {
         reportData[deptName] = {
           departmentId: allocation.department._id,
@@ -60,8 +60,8 @@ const getConsolidatedBudgetReport = async (req, res) => {
           allocatedAmount: allocation.allocatedAmount,
           spentAmount: allocation.spentAmount,
           remainingAmount: allocation.allocatedAmount - allocation.spentAmount,
-          utilizationPercentage: allocation.allocatedAmount > 0 
-            ? Math.round((allocation.spentAmount / allocation.allocatedAmount) * 100) 
+          utilizationPercentage: allocation.allocatedAmount > 0
+            ? Math.round((allocation.spentAmount / allocation.allocatedAmount) * 100)
             : 0
         },
         previousYear: {
@@ -77,14 +77,14 @@ const getConsolidatedBudgetReport = async (req, res) => {
     previousAllocations.forEach(allocation => {
       const deptName = allocation.department.name;
       const headName = allocation.budgetHead.name;
-      
+
       if (reportData[deptName] && reportData[deptName].budgetHeads[headName]) {
         reportData[deptName].budgetHeads[headName].previousYear = {
           allocatedAmount: allocation.allocatedAmount,
           spentAmount: allocation.spentAmount,
           remainingAmount: allocation.allocatedAmount - allocation.spentAmount,
-          utilizationPercentage: allocation.allocatedAmount > 0 
-            ? Math.round((allocation.spentAmount / allocation.allocatedAmount) * 100) 
+          utilizationPercentage: allocation.allocatedAmount > 0
+            ? Math.round((allocation.spentAmount / allocation.allocatedAmount) * 100)
             : 0
         };
       }
@@ -107,15 +107,15 @@ const getConsolidatedBudgetReport = async (req, res) => {
         deptTotalAllocated += head.currentYear.allocatedAmount;
         deptTotalSpent += head.currentYear.spentAmount;
         deptTotalUnspent += head.currentYear.remainingAmount;
-        
+
         budgetHeadDetails.push({
           budgetHeadName: headName,
           ...head
         });
       });
 
-      const utilizationPercentage = deptTotalAllocated > 0 
-        ? Math.round((deptTotalSpent / deptTotalAllocated) * 100) 
+      const utilizationPercentage = deptTotalAllocated > 0
+        ? Math.round((deptTotalSpent / deptTotalAllocated) * 100)
         : 0;
 
       grandTotalAllocated += deptTotalAllocated;
@@ -162,22 +162,22 @@ const getConsolidatedBudgetReport = async (req, res) => {
     // Calculate percentages for category breakdown
     Object.keys(categoryBreakdown).forEach(category => {
       const cat = categoryBreakdown[category];
-      cat.percentage = cat.allocated > 0 
-        ? Math.round((cat.spent / cat.allocated) * 100) 
+      cat.percentage = cat.allocated > 0
+        ? Math.round((cat.spent / cat.allocated) * 100)
         : 0;
     });
 
     // Calculate percentages for budget type breakdown
     Object.keys(budgetTypeBreakdown).forEach(type => {
       const bt = budgetTypeBreakdown[type];
-      bt.percentage = bt.allocated > 0 
-        ? Math.round((bt.spent / bt.allocated) * 100) 
+      bt.percentage = bt.allocated > 0
+        ? Math.round((bt.spent / bt.allocated) * 100)
         : 0;
     });
 
     const grandTotalUnspent = grandTotalAllocated - grandTotalSpent;
-    const grandUtilizationPercentage = grandTotalAllocated > 0 
-      ? Math.round((grandTotalSpent / grandTotalAllocated) * 100) 
+    const grandUtilizationPercentage = grandTotalAllocated > 0
+      ? Math.round((grandTotalSpent / grandTotalAllocated) * 100)
       : 0;
 
     res.status(200).json({
@@ -226,6 +226,25 @@ const getBudgetUtilizationDashboard = async (req, res) => {
       .populate('department', 'name code')
       .populate('budgetHead', 'name category budgetType');
 
+    // Get daily expenditures (today)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const dailyExpenditures = await Expenditure.find({
+      billDate: { $gte: today, $lt: tomorrow },
+      status: { $in: ['approved', 'finalized'] }
+    }).populate('department', 'name code');
+
+    const dailyTotal = dailyExpenditures.reduce((sum, exp) => sum + exp.billAmount, 0);
+    const dailyDepartmentWise = {};
+
+    dailyExpenditures.forEach(exp => {
+      const deptName = exp.department.name;
+      dailyDepartmentWise[deptName] = (dailyDepartmentWise[deptName] || 0) + exp.billAmount;
+    });
+
     // Group by utilization ranges
     const utilizationRanges = {
       '0-25': { count: 0, totalAllocated: 0, departments: [] },
@@ -236,8 +255,8 @@ const getBudgetUtilizationDashboard = async (req, res) => {
     };
 
     allocations.forEach(allocation => {
-      const percentage = allocation.allocatedAmount > 0 
-        ? (allocation.spentAmount / allocation.allocatedAmount) * 100 
+      const percentage = allocation.allocatedAmount > 0
+        ? (allocation.spentAmount / allocation.allocatedAmount) * 100
         : 0;
 
       let range;
@@ -260,7 +279,7 @@ const getBudgetUtilizationDashboard = async (req, res) => {
     const departmentUtilization = {};
     allocations.forEach(allocation => {
       const deptName = allocation.department.name;
-      
+
       if (!departmentUtilization[deptName]) {
         departmentUtilization[deptName] = {
           departmentId: allocation.department._id,
@@ -277,8 +296,8 @@ const getBudgetUtilizationDashboard = async (req, res) => {
 
     Object.keys(departmentUtilization).forEach(deptName => {
       const dept = departmentUtilization[deptName];
-      dept.utilizationPercentage = dept.totalAllocated > 0 
-        ? Math.round((dept.totalSpent / dept.totalAllocated) * 100) 
+      dept.utilizationPercentage = dept.totalAllocated > 0
+        ? Math.round((dept.totalSpent / dept.totalAllocated) * 100)
         : 0;
     });
 
@@ -294,7 +313,9 @@ const getBudgetUtilizationDashboard = async (req, res) => {
           .length,
         departmentsWithLowUtilization: Object.values(departmentUtilization)
           .filter(d => d.utilizationPercentage < 50)
-          .length
+          .length,
+        dailyTotal,
+        dailyDepartmentWise
       }
     });
   } catch (error) {
@@ -341,9 +362,9 @@ const getFundUtilizationTrend = async (req, res) => {
 
     // Format trend data
     const trend = monthlyTrend.map(item => ({
-      month: new Date(item._id.year, item._id.month - 1).toLocaleDateString('en-US', { 
-        month: 'short', 
-        year: 'numeric' 
+      month: new Date(item._id.year, item._id.month - 1).toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric'
       }),
       totalSpent: item.totalSpent,
       transactionCount: item.count
