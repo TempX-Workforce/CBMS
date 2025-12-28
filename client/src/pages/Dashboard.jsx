@@ -13,7 +13,7 @@ import {
   CreditCard,
   AlertCircle
 } from 'lucide-react';
-import './Dashboard.css';
+import './Dashboard.scss';
 
 const Dashboard = () => {
   const { user } = useAuth();

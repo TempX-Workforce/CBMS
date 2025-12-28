@@ -7,7 +7,7 @@ import { getCurrentFinancialYear, getPreviousFinancialYear } from '../utils/date
 import ErrorBoundary from '../components/ErrorBoundary';
 import { RefreshCw, AlertCircle, Wallet, TrendingUp, PiggyBank, Percent } from 'lucide-react';
 import PageHeader from '../components/Common/PageHeader';
-import './GraphicalDashboard.css';
+import './GraphicalDashboard.scss';
 
 const GraphicalDashboard = () => {
   const { user } = useAuth();

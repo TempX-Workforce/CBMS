@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import { User, Mail, Briefcase, Building2, Calendar, Lock, Save, AlertCircle, CheckCircle2, Eye, EyeOff, Camera, Loader2 } from 'lucide-react';
-import './Profile.css';
+import './Profile.scss';
 
 const Profile = () => {
     const { user, updateProfile: updateAuthProfile, uploadProfilePicture } = useAuth();

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { financialYearAPI } from '../services/api';
 import PageHeader from '../components/Common/PageHeader';
 import { Calendar, Lock, CheckCircle, RefreshCw, Plus, AlertCircle, TrendingUp, DollarSign } from 'lucide-react';
-import './FinancialYearManagement.css';
+import './FinancialYearManagement.scss';
 
 const FinancialYearManagement = () => {
     const [years, setYears] = useState([]);

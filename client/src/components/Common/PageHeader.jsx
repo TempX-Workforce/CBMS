@@ -1,6 +1,6 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
-import '../../pages/GraphicalDashboard.css'; // Import the CSS where the glass styles are defined, or rely on global index.css if moved there. 
+import '../../pages/GraphicalDashboard.scss'; // Import the CSS where the glass styles are defined, or rely on global index.css if moved there. 
 // For now, assuming index.css has the vars, but the specific classes like .dashboard-header might need to be global or scoped here.
 // Let's use inline styles or a new CSS file for Common components to be cleaner.
 // Actually, let's assume we will move the styles to global or a Common.css.

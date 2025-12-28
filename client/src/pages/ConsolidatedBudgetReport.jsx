@@ -4,7 +4,7 @@ import PageHeader from '../components/Common/PageHeader';
 import StatCard from '../components/Common/StatCard';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download, RotateCw } from 'lucide-react';
-import './ConsolidatedBudgetReport.css';
+import './ConsolidatedBudgetReport.scss';
 
 const ConsolidatedBudgetReport = () => {
   const [report, setReport] = useState(null);

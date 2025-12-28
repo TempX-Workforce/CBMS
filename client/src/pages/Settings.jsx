@@ -3,7 +3,7 @@ import { settingsAPI } from '../services/api';
 import PageHeader from '../components/Common/PageHeader';
 import ContentCard from '../components/Common/ContentCard';
 import { Settings as SettingsIcon, IndianRupee, Bell, Shield, Server, RotateCcw, Save } from 'lucide-react';
-import './Settings.css';
+import './Settings.scss';
 
 const Settings = () => {
   const [settings, setSettings] = useState(null);

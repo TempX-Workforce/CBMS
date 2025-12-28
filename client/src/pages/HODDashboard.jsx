@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { CheckCircle, Paperclip, Check, X } from 'lucide-react';
 import PageHeader from '../components/Common/PageHeader';
-import './HODDashboard.css';
+import './HODDashboard.scss';
 
 const HODDashboard = () => {
   const { user } = useAuth();

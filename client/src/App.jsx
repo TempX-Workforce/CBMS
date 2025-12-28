@@ -9,14 +9,17 @@ import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
-import DepartmentDashboard from './pages/DepartmentDashboard';
+
 import HODDashboard from './pages/HODDashboard';
 import ConsolidatedDashboard from './pages/ConsolidatedDashboard';
 import GraphicalDashboard from './pages/GraphicalDashboard';
-import DepartmentDetail from './pages/DepartmentDetail';
-import BudgetAllocations from './pages/BudgetAllocations';
-import SubmitExpenditure from './pages/SubmitExpenditure';
-import Expenditures from './pages/Expenditures';
+
+
+import {
+  Expenditures,
+  SubmitExpenditure,
+  ResubmitExpenditure
+} from './pages/ExpenditureModule';
 import ApprovalsQueue from './pages/ApprovalsQueue';
 import YearComparison from './pages/YearComparison';
 import Reports from './pages/Reports';
@@ -24,27 +27,33 @@ import AuditLogs from './pages/AuditLogs';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 import Users from './pages/Users';
-import UserForm from './pages/UserForm';
-import AllocationForm from './pages/AllocationForm';
-import Departments from './pages/Departments';
-import DepartmentForm from './pages/DepartmentForm';
-import BudgetHeads from './pages/BudgetHeads';
-import BudgetHeadForm from './pages/BudgetHeadForm';
 import Categories from './pages/Categories';
-import CategoryForm from './pages/CategoryForm';
-import ResubmitExpenditure from './pages/ResubmitExpenditure';
 import BulkUpload from './pages/BulkUpload';
-import DepartmentUsers from './pages/DepartmentUsers';
+import {
+  DepartmentDashboard,
+  DepartmentDetail,
+  DepartmentForm,
+  Departments,
+  DepartmentUsers
+} from './pages/DepartmentModule';
 import Profile from './pages/Profile';
-import BudgetProposals from './pages/BudgetProposals';
-import BudgetProposalForm from './pages/BudgetProposalForm';
 import ConsolidatedBudgetReport from './pages/ConsolidatedBudgetReport';
-import BudgetUtilizationDashboard from './pages/BudgetUtilizationDashboard';
-import BudgetProposalReport from './pages/BudgetProposalReport';
-import IncomeReceipts from './pages/IncomeReceipts';
-import IncomeForm from './pages/IncomeForm';
+import {
+  BudgetAllocations,
+  BudgetHeads,
+  BudgetHeadForm,
+  BudgetProposals,
+  BudgetProposalForm,
+  BudgetUtilizationDashboard,
+  BudgetProposalReport,
+  AllocationForm
+} from './pages/BudgetModule';
+import {
+  IncomeReceipts,
+  IncomeForm
+} from './pages/IncomeModule';
 import FinancialYearManagement from './pages/FinancialYearManagement';
-import './App.css';
+import './App.scss';
 
 // Dashboard Wrapper Component
 const DashboardWrapper = () => {
@@ -79,8 +88,8 @@ function App() {
 
                 {/* Admin Routes */}
                 <Route path="users" element={<Users />} />
-                <Route path="users/add" element={<UserForm />} />
-                <Route path="users/edit/:id" element={<UserForm />} />
+                <Route path="users/add" element={<Users />} />
+                <Route path="users/edit/:id" element={<Users />} />
                 <Route path="departments" element={<Departments />} />
                 <Route path="departments/add" element={<DepartmentForm />} />
                 <Route path="departments/edit/:id" element={<DepartmentForm />} />
@@ -88,8 +97,8 @@ function App() {
                 <Route path="budget-heads/add" element={<BudgetHeadForm />} />
                 <Route path="budget-heads/edit/:id" element={<BudgetHeadForm />} />
                 <Route path="categories" element={<Categories />} />
-                <Route path="categories/add" element={<CategoryForm />} />
-                <Route path="categories/edit/:id" element={<CategoryForm />} />
+                <Route path="categories/add" element={<Categories />} />
+                <Route path="categories/edit/:id" element={<Categories />} />
                 <Route path="settings" element={<Settings />} />
 
                 {/* Office Routes */}

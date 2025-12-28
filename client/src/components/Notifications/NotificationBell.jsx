@@ -4,7 +4,7 @@ import { useSocket } from '../../context/SocketContext';
 import { notificationAPI } from '../../services/api';
 import Tooltip from '../Tooltip/Tooltip';
 import { Bell, FileText, CheckCircle, XCircle, DollarSign, AlertTriangle, Clock, Megaphone, Trash2 } from 'lucide-react';
-import './NotificationBell.css';
+import './NotificationBell.scss';
 
 const NotificationBell = () => {
   const { user } = useAuth();

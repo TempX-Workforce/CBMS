@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Tooltip from '../components/Tooltip/Tooltip';
 import { GraduationCap, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import './Login.css';
+import './Login.scss';
 
 const Login = () => {
   const [formData, setFormData] = useState({

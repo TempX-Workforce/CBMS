@@ -25,7 +25,7 @@ import {
   BarChart3,
   Gauge
 } from 'lucide-react';
-import './Sidebar.css';
+import './Sidebar.scss';
 
 const Sidebar = ({ isOpen, onClose, isExpanded, onToggleExpand }) => {
   const { user, logout } = useAuth();

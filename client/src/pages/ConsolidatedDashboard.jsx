@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { getCurrentFinancialYear, getPreviousFinancialYear } from '../utils/dateUtils';
 import { IndianRupee, CreditCard, Wallet, PieChart, List, Receipt, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
-import './ConsolidatedDashboard.css';
+import './ConsolidatedDashboard.scss';
 
 const ConsolidatedDashboard = () => {
   const { user } = useAuth();

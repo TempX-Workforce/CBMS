@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { expenditureAPI, budgetProposalAPI } from '../services/api';
 import Tooltip from '../components/Tooltip/Tooltip';
 import { Check, X, Search, FileText, DollarSign, ClipboardList } from 'lucide-react';
-import './ApprovalsQueue.css';
+import './ApprovalsQueue.scss';
 
 const ApprovalsQueue = () => {
   const { user } = useAuth();
